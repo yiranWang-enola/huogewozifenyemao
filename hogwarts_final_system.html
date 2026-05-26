@@ -1,0 +1,118 @@
+
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<title>霍格沃兹分业帽·最终模拟系统</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+<style>
+body{margin:0;font-family:Arial;background:#0e1629;color:#fff}
+.sidebar{position:fixed;left:0;top:0;width:220px;height:100%;background:#08111f;padding:20px}
+.main{margin-left:240px;padding:20px}
+.card{background:#18233d;padding:18px;border-radius:15px;margin:15px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.hat{font-size:90px;animation:f 2s infinite;text-align:center}
+@keyframes f{50%{transform:translateY(-10px)}}
+button{background:#2563eb;color:white;border:0;padding:10px 16px;border-radius:8px}
+.chat{height:220px;overflow:auto;background:#111827;padding:10px;border-radius:10px}
+input,select{padding:8px;margin:5px;width:80%}
+</style></head><body>
+<div class="sidebar">
+<div class=hat>🎩</div>
+<h2>霍格沃兹分业帽</h2>
+<p>分院之前，先分专业</p>
+<p>已完成：3278人</p>
+</div>
+
+<div class="main">
+<div class=grid>
+<div class=card>
+<h2>MBTI测试（模拟30题）</h2>
+<select id=mbti><option>INTJ</option><option>ENTP</option><option>INFJ</option></select>
+<p>结果：<span id=mbtiRes>INTJ 建筑师型</span></p>
+
+<h2>霍兰德测试（模拟60题）</h2>
+<select id=hol><option>RIA</option><option>IAS</option><option>SEC</option></select>
+<p>结果：<span id=holRes>RIA 研究/现实/艺术</span></p>
+</div>
+
+<div class=card>
+<h2>个人信息</h2>
+<input id=score value="610" placeholder="分数"><br>
+<select><option>山东</option><option>江苏</option></select><br>
+<select><option>物化生</option></select><br>
+<select><option>工程技术</option><option>金融经济</option></select><br>
+<button onclick="gen()">生成初始推荐</button>
+</div>
+</div>
+
+<div class=grid>
+<div class=card>
+<h2>专业数据库（演示）</h2>
+<table>
+<tr><td>计算机</td><td>薪资:12800</td><td>就业率:96%</td></tr>
+<tr><td>电子信息</td><td>薪资:11800</td><td>就业率:94%</td></tr>
+<tr><td>金融科技</td><td>薪资:11500</td><td>就业率:90%</td></tr>
+</table>
+</div>
+
+<div class=card>
+<h2>初始推荐结果</h2>
+<div id=rec>等待生成...</div>
+<div id=radar style="height:250px"></div>
+</div>
+</div>
+
+<div class=grid>
+<div class=card>
+<h2>多轮博弈交互</h2>
+<div id=chat class=chat>🎩 分业帽：告诉我你的真实想法。</div><br>
+<input id=msg placeholder="例如：我喜欢金融/不喜欢编程">
+<button onclick="talk()">发送</button>
+</div>
+
+<div class=card>
+<h2>最终推荐方案</h2>
+<div id=final>等待博弈优化...</div>
+<button onclick="poster()">生成分享海报</button>
+<div id=share></div>
+</div>
+</div>
+</div>
+
+<script>
+function gen(){
+document.getElementById("rec").innerHTML="<h3>霍格沃兹工学院 91%</h3>①计算机科学与技术<br>②电子信息工程<br>③自动化";
+let c=echarts.init(document.getElementById("radar"));
+c.setOption({radar:{indicator:[
+{name:'数学',max:100},{name:'逻辑',max:100},{name:'表达',max:100},{name:'创造',max:100},{name:'实践',max:100}]},
+series:[{type:'radar',data:[{value:[85,91,63,73,88]}]}]})
+}
+
+let round=1
+function talk(){
+let m=document.getElementById("msg").value;
+let chat=document.getElementById("chat");
+chat.innerHTML+="<br>你："+m;
+
+let reply="已更新偏好模型";
+let res="TOP3：计算机、人工智能、电子信息";
+
+if(m.includes("金融")){
+reply="检测到金融偏好，提高商业权重";
+res="TOP3：金融科技、数据科学、信息管理"
+}
+if(m.includes("不喜欢编程")){
+reply="降低编程权重，提高管理表达权重";
+res="TOP3：工业工程、经济统计、工商管理"
+}
+chat.innerHTML+="<br>🎩 分业帽："+reply;
+document.getElementById("final").innerHTML=
+"<h3>第"+round+"轮优化结果</h3>"+res+"<br>满意则停止，否则继续对话";
+round++;
+chat.scrollTop=chat.scrollHeight;
+}
+
+function poster(){
+document.getElementById("share").innerHTML=
+"<div style='border:1px solid white;padding:10px;margin-top:10px'>🎩 霍格沃兹工学院<br>推荐：计算机科学与技术<br>匹配度：91%</div>"
+}
+</script>
+</body></html>
