@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}推荐结果 - 霍格沃兹分业帽{% endblock %}
+
+{% block content %}
+{% with current_step='recommend' %}
+<div class="card">
+    <h1>🎯 智能推荐结果</h1>
+    <p style="color: #94a3b8; margin-top: 10px;">基于你的测试数据和画像，为你推荐以下专业方向</p>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>📋 推荐专业列表</h2>
+        
+        <div class="recommend-item">
+            <h3>🏆 首选推荐</h3>
+            <p class="match-rate">匹配度：95%</p>
+            <p class="description">基于你的 {{ mbti }} 性格类型和 {{ holland }} 霍兰德代码</p>
+        </div>
+        
+        <div class="recommend-item">
+            <h3>🥈 备选推荐一</h3>
+            <p class="match-rate">匹配度：88%</p>
+        </div>
+        
+        <div class="recommend-item">
+            <h3>🥉 备选推荐二</h3>
+            <p class="match-rate">匹配度：82%</p>
+        </div>
+        
+        <form method="post" action="{% url 'recommend' %}">
+            {% csrf_token %}
+            <div style="margin-top: 30px; display: flex; gap: 15px;">
+                <a href="{% url 'profile' %}" class="btn-secondary">← 返回画像</a>
+                <button type="submit" class="btn-primary">进入博弈 →</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>📊 测试数据分析</h2>
+        
+        <div class="analysis-section">
+            <h3>🧠 MBTI 维度得分</h3>
+            <div class="score-bars">
+                <div class="score-bar">
+                    <span>E (外向)</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.E|default:0 }}0%"></div></div>
+                    <span>{{ mbti_scores.E|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>I (内向)</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.I|default:0 }}0%"></div></div>
+                    <span>{{ mbti_scores.I|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>S (感觉)</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.S|default:0 }}0%"></div></div>
+                    <span>{{ mbti_scores.S|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>N (直觉)</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.N|default:0 }}0%"></div></div>
+                    <span>{{ mbti_scores.N|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>T (思考)</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.T|default:0 }}0%"></div></div>
+                    <span>{{ mbti_scores.T|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>F (情感)</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.F|default:0 }}0%"></div></div>
+                    <span>{{ mbti_scores.F|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>J (判断)</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.J|default:0 }}0%"></div></div>
+                    <span>{{ mbti_scores.J|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>P (知觉)</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.P|default:0 }}0%"></div></div>
+                    <span>{{ mbti_scores.P|default:0 }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="analysis-section">
+            <h3>🎯 霍兰德类型得分</h3>
+            <div class="score-bars">
+                <div class="score-bar">
+                    <span>R (现实型)</span>
+                    <div class="bar"><div style="width: {{ holland_scores.R|default:0 }}0%"></div></div>
+                    <span>{{ holland_scores.R|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>I (研究型)</span>
+                    <div class="bar"><div style="width: {{ holland_scores.I|default:0 }}0%"></div></div>
+                    <span>{{ holland_scores.I|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>A (艺术型)</span>
+                    <div class="bar"><div style="width: {{ holland_scores.A|default:0 }}0%"></div></div>
+                    <span>{{ holland_scores.A|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>S (社会型)</span>
+                    <div class="bar"><div style="width: {{ holland_scores.S|default:0 }}0%"></div></div>
+                    <span>{{ holland_scores.S|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>E (企业型)</span>
+                    <div class="bar"><div style="width: {{ holland_scores.E|default:0 }}0%"></div></div>
+                    <span>{{ holland_scores.E|default:0 }}</span>
+                </div>
+                <div class="score-bar">
+                    <span>C (常规型)</span>
+                    <div class="bar"><div style="width: {{ holland_scores.C|default:0 }}0%"></div></div>
+                    <span>{{ holland_scores.C|default:0 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}
