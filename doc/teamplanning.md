@@ -13,8 +13,7 @@
 
 ## 项目架构图（Django版）
 
-、、、
-
+```
 huogewozifenyemao/ # Django项目根目录
 │
 ├── config/ # Django配置
@@ -55,13 +54,13 @@ huogewozifenyemao/ # Django项目根目录
 │
 ├── manage.py
 └── requirements.txt
-
-、、、
+```
 
 ---
 
 ## 联调依赖关系
 
+```
 ┌─────────────────────────────────────────────────────────┐
 │ 王琪（后端API） │
 │ 串联所有模块 │
@@ -83,3 +82,4 @@ huogewozifenyemao/ # Django项目根目录
 │ 王漪冉（前端） │
 │ 调用API展示结果 │
 └───────────────────────┘
+```
