@@ -32,7 +32,7 @@ huogewozifenyemao/ # Django项目根目录
 │ ├── algorithm/ # 算法模块（新建）
 │ │ ├── init.py
 │ │ ├── topsis.py # 🔴 奉乐乐
-│ │ ├── weight_manager.py # 🔴 奉乐乐
+│ │ ├── weight_manager.py # 🔴 奉乐乐（这个在game_engine里实现了，于是删掉了）
 │ │ ├── semantic_matcher.py # 🔴 李佳润
 │ │ ├── trend_analyzer.py # 🔴 李佳润
 │ │ └── game_engine.py # 🔴 余天骜
