@@ -127,8 +127,8 @@ def index(request):
         'holland_profiles': HOLLAND_PROFILES,
         'mbti_profiles': MBTI_PROFILES,
         'zxf_advice': ZXF_ADVICE,
-    }
-    return render(request, 'index.html', context)
+    } # 将数据传递给模板
+    return render(request, 'index.html', context) # 渲染模板并返回给用户，把context中的数据传递给模板
 
 
 def get_data(request):
