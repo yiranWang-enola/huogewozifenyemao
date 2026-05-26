@@ -137,3 +137,132 @@ class GameEngine:
         """获取对话日志，用于数据库存储（与钟鑫平模块对接）"""
         return self.answers
 
+#添加的方法
+
+def get_topsis_weights(self, gaokao_score: int = None) -> dict:
+    """
+    将 AHP 计算的 RIASEC 权重转换为 TOPSIS 算法所需的 5 个指标权重
+    
+    Args:
+        gaokao_score: 高考分数，用于动态调整 gaokao_fit 权重
+    
+    Returns:
+        {
+            'personality_fit': 0.25,
+            'interest_match': 0.25, 
+            'gaokao_fit': 0.20,
+            'employment_rate': 0.15,
+            'salary_level': 0.15
+        }
+    """
+    # 1. 获取 RIASEC 权重（AHP 计算的结果）
+    riasec = self.calculate_weights()
+    
+    # 2. 映射规则：RIASEC 六维 → TOPSIS 五维
+    # personality_fit（性格匹配）：R(动手) + I(思考) + E(领导) + S(沟通) + C(条理) + A(创意)
+    personality_fit = (
+        riasec.get('R', 0) * 0.30 +   # 现实型 → 动手能力
+        riasec.get('I', 0) * 0.20 +   # 研究型 → 思考能力
+        riasec.get('E', 0) * 0.20 +   # 企业型 → 领导力
+        riasec.get('S', 0) * 0.15 +   # 社会型 → 沟通能力
+        riasec.get('C', 0) * 0.10 +   # 常规型 → 条理性
+        riasec.get('A', 0) * 0.05     # 艺术型 → 创造力
+    )
+    
+    # interest_match（兴趣匹配）：I(研究) + A(艺术) + S(社会) + R(现实)
+    interest_match = (
+        riasec.get('I', 0) * 0.40 +   # 研究型 → 学术兴趣
+        riasec.get('A', 0) * 0.30 +   # 艺术型 → 创意兴趣
+        riasec.get('S', 0) * 0.20 +   # 社会型 → 人际兴趣
+        riasec.get('R', 0) * 0.10     # 现实型 → 动手兴趣
+    )
+    
+    # 3. 基础权重
+    weights = {
+        'personality_fit': personality_fit,
+        'interest_match': interest_match,
+        'gaokao_fit': 0.20,
+        'employment_rate': 0.15,
+        'salary_level': 0.15
+    }
+    
+    # 4. 根据高考分数调整 gaokao_fit
+    if gaokao_score:
+        if gaokao_score < 350:
+            weights['gaokao_fit'] = 0.35   # 低分考生更关心能不能考上
+        elif gaokao_score > 600:
+            weights['gaokao_fit'] = 0.12   # 高分考生不太担心分数
+    
+    # 5. 根据霍兰德首码调整（从 RIASEC 中取最高分维度）
+    top_dimension = max(riasec, key=riasec.get)
+    if top_dimension == 'I':  # 研究型
+        weights['personality_fit'] *= 1.15
+        weights['interest_match'] *= 1.15
+        weights['salary_level'] *= 0.90
+    elif top_dimension == 'E':  # 企业型
+        weights['salary_level'] *= 1.20
+        weights['employment_rate'] *= 1.10
+        weights['personality_fit'] *= 0.90
+    
+    # 6. 归一化，使总和为 1
+    total = sum(weights.values())
+    for k in weights:
+        weights[k] = round(weights[k] / total, 4)
+    
+    return weights
+
+
+def apply_feedback(self, feedback_key: str, gaokao_score: int = None) -> dict:
+    """
+    用户点击调整按钮后，重新计算权重
+    
+    Args:
+        feedback_key: 调整选项，可选值：'more_money', 'more_stable', 'more_interest', 'score_worry'
+        gaokao_score: 高考分数
+    
+    Returns:
+        调整后的 TOPSIS 权重
+    """
+    weights = self.get_topsis_weights(gaokao_score)
+    
+    # 预定义的调整量
+    adjustments = {
+        'more_money': {      # 我更看重高薪
+            'salary_level': +0.08,
+            'interest_match': -0.04
+        },
+        'more_stable': {     # 我更看重就业稳定
+            'employment_rate': +0.10,
+            'salary_level': -0.05
+        },
+        'more_interest': {   # 我更看重兴趣匹配
+            'interest_match': +0.08,
+            'salary_level': -0.04
+        },
+        'score_worry': {     # 我的分数可能不够
+            'gaokao_fit': +0.10,
+            'personality_fit': -0.05
+        }
+    }
+    
+    if feedback_key in adjustments:
+        for key, delta in adjustments[feedback_key].items():
+            if key in weights:
+                weights[key] = max(0.05, weights[key] + delta)
+    
+    # 重新归一化
+    total = sum(weights.values())
+    for k in weights:
+        weights[k] = round(weights[k] / total, 4)
+    
+    return weights
+
+
+def get_adjustment_options(self) -> list:
+    """获取可用的调整选项（供前端展示按钮）"""
+    return [
+        {'key': 'more_money', 'label': '💰 我更看重高薪'},
+        {'key': 'more_stable', 'label': '🏛️ 我更看重就业稳定'},
+        {'key': 'more_interest', 'label': '❤️ 我更看重兴趣匹配'},
+        {'key': 'score_worry', 'label': '📝 我的分数可能不够'},
+    ]
