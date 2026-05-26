@@ -16,11 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from assessment import views
+from assessment import views # 从assessment应用中导入views模块
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', views.index, name='index'),
-    path('api/data/', views.get_data, name='get_data'),
+    path('admin/', admin.site.urls), # 设置admin路径对应的视图函数为admin.site.urls
+    path('', views.index, name='index'), # 设置根路径对应的视图函数为index
+    path('api/data/', views.get_data, name='get_data'), # 设置api/data/路径对应的视图函数为get_data
 ]
 
