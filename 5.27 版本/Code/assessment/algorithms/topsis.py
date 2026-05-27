@@ -80,8 +80,13 @@ class TOPSIS:
         return self.weights
 
 
-def get_initial_weights(holland_code, mbti, gaokao_score, province):
-    """根据用户特征动态调整初始权重"""
+def get_initial_weights(holland_code, mbti, gaokao_score, province,
+                        selected_subjects, chinese_score, math_score,
+                        physics_score, history_score):
+    """
+    根据用户特征动态调整初始权重
+    新增：选科组合、语文/数学/物理/历史 单科分数 影响权重
+    """
     weights = {
         'personality_fit': 0.25,
         'interest_match': 0.25,
@@ -90,6 +95,7 @@ def get_initial_weights(holland_code, mbti, gaokao_score, province):
         'salary_level': 0.15
     }
 
+    # ========== 1. 霍兰德类型 原有逻辑 ==========
     # 研究型学生更看重性格和兴趣匹配
     if 'I' in holland_code:
         weights['personality_fit'] = 0.30
@@ -106,6 +112,7 @@ def get_initial_weights(holland_code, mbti, gaokao_score, province):
         weights['gaokao_fit'] = 0.15
         weights['interest_match'] = 0.20
 
+    # ========== 2. 高考总分 原有逻辑 ==========
     # 低分考生更关注分数适配度
     if gaokao_score and gaokao_score < 350:
         weights['gaokao_fit'] = 0.35
@@ -121,5 +128,46 @@ def get_initial_weights(holland_code, mbti, gaokao_score, province):
         weights['gaokao_fit'] = 0.15
         weights['employment_rate'] = 0.125
         weights['salary_level'] = 0.125
+
+    # ========== 3. 新增：选科组合 区分逻辑 ==========
+    physics_group = ["物化生", "物化政", "物化地"]
+    history_group = ["历政地", "历政生"]
+
+    # 物理类选科：强化分数适配权重（理工科对分数要求高）
+    if selected_subjects in physics_group:
+        weights['gaokao_fit'] += 0.08
+        weights['employment_rate'] += 0.05
+    # 历史类选科：强化性格、兴趣匹配（文综类更看重个人特质）
+    elif selected_subjects in history_group:
+        weights['personality_fit'] += 0.08
+        weights['interest_match'] += 0.05
+
+    # ========== 4. 新增：单科分数 微调权重 ==========
+    # 语文、数学通用判断
+    total_single = 0
+    if chinese_score:
+        total_single += chinese_score
+    if math_score:
+        total_single += math_score
+
+    # 单科整体偏低，进一步提高分数适配权重
+    if total_single > 0 and total_single < 180:
+        weights['gaokao_fit'] += 0.07
+    # 单科整体优秀，偏向兴趣/性格
+    elif total_single > 0 and total_single > 240:
+        weights['personality_fit'] += 0.06
+        weights['interest_match'] += 0.04
+
+    # 物理单科低分：降低理工科专业倾向（分数权重拉高）
+    if physics_score and physics_score < 60:
+        weights['gaokao_fit'] += 0.06
+    # 历史单科低分：降低文史类专业倾向
+    if history_score and history_score < 60:
+        weights['gaokao_fit'] += 0.06
+
+    # ========== 权重归一化：保证总和始终为1 ==========
+    total_w = sum(weights.values())
+    for k in weights:
+        weights[k] = round(weights[k] / total_w, 4)
 
     return weights

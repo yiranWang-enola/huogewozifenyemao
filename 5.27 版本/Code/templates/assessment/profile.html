@@ -33,29 +33,78 @@
         </div>
 
         <!-- 右侧：信息填写 + 小贴士 -->
-        <div>
-            <div class="card">
-                <h2>📋 填写个人信息</h2>
-                <form method="post" action="{% url 'profile' %}">
-                    {% csrf_token %}
+        <div class="card">
+        <h2>📋 填写个人信息</h2>
+        <form method="post" action="{% url 'profile' %}">
+            {% csrf_token %}
 
-                    <label style="color: #94a3b8; display: block; margin-bottom: 6px;">高考分数</label>
-                    <input type="number" name="gaokao_score" class="form-input" placeholder="请输入你的高考分数" required>
+            <label style="color: #94a3b8; display: block; margin-bottom: 6px;">高考分数</label>
+            <input type="number" name="gaokao_score" class="form-input" placeholder="请输入你的高考分数" required value="{{ gaokao_score }}">
 
-                    <label style="color: #94a3b8; display: block; margin-bottom: 6px;">省份</label>
-                    <input type="text" name="province" class="form-input" placeholder="请输入你所在的省份" required>
+            <label style="color: #94a3b8; display: block; margin-bottom: 6px;">省份</label>
+            <input type="text" name="province" class="form-input" placeholder="请输入你所在的省份" required value="{{ province }}">
 
-                    <label style="color: #94a3b8; display: block; margin-bottom: 6px;">选考科目</label>
-                    <input type="text" name="subjects" class="form-input" placeholder="请输入你的选考科目" required>
+            <label style="color: #94a3b8; display: block; margin-bottom: 6px;">选考科目</label>
+            <select id="subjectSelect" name="subject" class="form-select" required>
+                <option value="">请选择选科组合</option>
+                <option value="物化生" {% if selected_subjects == '物化生' %}selected{% endif %}>物化生</option>
+                <option value="物化政" {% if selected_subjects == '物化政' %}selected{% endif %}>物化政</option>
+                <option value="物化地" {% if selected_subjects == '物化地' %}selected{% endif %}>物化地</option>
+                <option value="历政地" {% if selected_subjects == '历政地' %}selected{% endif %}>历政地</option>
+                <option value="历政生" {% if selected_subjects == '历政生' %}selected{% endif %}>历政生</option>
+            </select>
 
-                    <label style="color: #94a3b8; display: block; margin-bottom: 6px;">兴趣关键词</label>
-                    <input type="text" name="interests" class="form-input" placeholder="如：计算机,金融,医学">
+            <div id="scoreExtra" style="margin-top:12px; display: none;">
+                <label style="color: #94a3b8; display: block; margin-bottom: 6px;">语文分数</label>
+                <input type="number" name="chinese_score" class="form-input" placeholder="请输入语文分数" required value="{{ chinese_score }}">
 
-                    <div style="margin-top: 20px;">
-                        <button type="submit" class="btn-primary" style="width: 100%;">生成初始推荐 →</button>
-                    </div>
-                </form>
+                <label style="color: #94a3b8; display: block; margin-bottom: 6px;">数学分数</label>
+                <input type="number" name="math_score" class="form-input" placeholder="请输入数学分数" required value="{{ math_score }}">
+
+                <label id="thirdLabel" style="color: #94a3b8; display: block; margin-bottom: 6px;"></label>
+                <input id="thirdInput" type="number" class="form-input" required>
             </div>
+
+            <label style="color: #94a3b8; display: block; margin-bottom: 6px;">兴趣关键词</label>
+            <input type="text" name="interests" class="form-input" placeholder="如：计算机,金融,医学" value="{{ interests }}">
+
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn-primary" style="width: 100%;">生成初始推荐 →</button>
+            </div>
+        </form>
+
+        <script>
+            const select = document.getElementById('subjectSelect');
+            const extraBox = document.getElementById('scoreExtra');
+            const thirdLabel = document.getElementById('thirdLabel');
+            const thirdInput = document.getElementById('thirdInput');
+
+            select.addEventListener('change', function () {
+                const val = this.value;
+                if (['物化生', '物化政', '物化地'].includes(val)) {
+                    extraBox.style.display = 'block';
+                    thirdLabel.textContent = '物理分数';
+                    thirdInput.name = 'physics_score';
+                    thirdInput.placeholder = '请输入物理分数';
+                    thirdInput.value = "{{ physics_score }}";
+                } else if (['历政地', '历政生'].includes(val)) {
+                    extraBox.style.display = 'block';
+                    thirdLabel.textContent = '历史分数';
+                    thirdInput.name = 'history_score';
+                    thirdInput.placeholder = '请输入历史分数';
+                    thirdInput.value = "{{ history_score }}";
+                } else {
+                    extraBox.style.display = 'none';
+                }
+            })
+
+            // 页面加载自动展开对应分数栏，实现刷新回显
+            window.onload = function () {
+                select.dispatchEvent(new Event('change'));
+            }
+        </script>
+    </div>
+</div>
 
             <div class="card">
                 <h3>💡 小贴士</h3>

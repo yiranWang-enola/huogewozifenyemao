@@ -250,29 +250,46 @@ def profile_page(request):
     if request.method == 'POST':
         gaokao_score = request.POST.get('gaokao_score', '')
         province = request.POST.get('province', '')
-        selected_subjects = request.POST.get('selected_subjects', '')
+        selected_subjects = request.POST.get('subject', '')
         interests = request.POST.get('interests', '')
 
-        request.session['gaokao_score'] = gaokao_score
-        request.session['province'] = province
-        request.session['selected_subjects'] = selected_subjects
-        request.session['interests'] = interests
+        chinese_score = request.POST.get('chinese_score', '')
+        math_score = request.POST.get('math_score', '')
+        physics_score = request.POST.get('physics_score', '')
+        history_score = request.POST.get('history_score', '')
 
-        # 保存到数据库
+        # 字符串转数字，空内容转为 None
+        def to_int(val):
+            val = val.strip()
+            return int(val) if val else None
+
+        update_data = {
+            "gaokao_score": to_int(gaokao_score),
+            "province": province,
+            "selected_subjects": selected_subjects,
+            "interests": interests,
+            "chinese_score": to_int(chinese_score),
+            "math_score": to_int(math_score),
+            "physics_score": to_int(physics_score),
+            "history_score": to_int(history_score)
+        }
+
+        # 存入 Session 用于页面回显
+        for k, v in update_data.items():
+            request.session[k] = v
+
         try:
             from . import db_utils
             sid = _get_session_id(request)
-            db_utils.update_user(sid,
-                                  gaokao_score=int(gaokao_score) if gaokao_score else None,
-                                  province=province,
-                                  selected_subjects=selected_subjects,
-                                  interests=interests)
-        except Exception:
-            pass
+            db_utils.update_user(sid, **update_data)
+        except Exception as e:
+            # 控制台打印错误，方便调试
+            print("保存用户数据出错：", e)
 
         messages.success(request, '个人信息已保存！')
         return redirect('recommend')
 
+    # GET 请求：读取 Session 数据传给模板
     mbti = request.session.get('mbti', '')
     mbti_profile = MBTI_PROFILES.get(mbti, {})
     holland = request.session.get('holland', '')
@@ -292,6 +309,10 @@ def profile_page(request):
         'province': request.session.get('province', ''),
         'selected_subjects': request.session.get('selected_subjects', ''),
         'interests': request.session.get('interests', ''),
+        'chinese_score': request.session.get('chinese_score', ''),
+        'math_score': request.session.get('math_score', ''),
+        'physics_score': request.session.get('physics_score', ''),
+        'history_score': request.session.get('history_score', ''),
     })
 
 
@@ -302,6 +323,20 @@ def recommend_page(request):
     holland_scores = request.session.get('holland_scores', {})
     gaokao_score = request.session.get('gaokao_score', 0)
     interests = request.session.get('interests', '')
+    province = request.session.get('province', '')
+
+    # ========= 新增：读取选科 + 单科分数 =========
+    selected_subjects = request.session.get('selected_subjects', '')
+    chinese_score = request.session.get('chinese_score')
+    math_score = request.session.get('math_score')
+    physics_score = request.session.get('physics_score')
+    history_score = request.session.get('history_score')
+
+    # 调试打印，确认拿到数据
+    print("==== 推荐页 选科&分数 ====")
+    print("选科组合:", selected_subjects)
+    print("语文:", chinese_score, "数学:", math_score)
+    print("物理:", physics_score, "历史:", history_score)
 
     # 使用TOPSIS算法生成推荐
     recommendations = []
@@ -330,8 +365,22 @@ def recommend_page(request):
         if matcher and interests:
             matched = matcher.match_interests_to_majors(interests, top_k=20)
 
-        # 获取初始权重
-        initial_weights = get_initial_weights(holland, mbti, int(gaokao_score) if gaokao_score else 0, request.session.get('province', ''))
+        # ========= 重点：调用新版权重函数，传入全部新参数 =========
+        # 空值兼容：None/空转为0
+        def safe_num(val):
+            return val if val is not None else 0
+
+        initial_weights = get_initial_weights(
+            holland_code=holland,
+            mbti=mbti,
+            gaokao_score=int(gaokao_score) if gaokao_score else 0,
+            province=province,
+            selected_subjects=selected_subjects,
+            chinese_score=safe_num(chinese_score),
+            math_score=safe_num(math_score),
+            physics_score=safe_num(physics_score),
+            history_score=safe_num(history_score)
+        )
 
         # 构建评价矩阵
         criteria_matrix = []
@@ -364,12 +413,13 @@ def recommend_page(request):
             sid = _get_session_id(request)
             assessment = db_utils.get_assessment(sid)
             if assessment:
-                rec_list = [{'name': r.get('name', ''), 'score': round(r.get('score', 0), 4), 'rank': i+1} for i, r in enumerate(recommendations)]
+                rec_list = [{'name': r.get('name', ''), 'score': round(r.get('topsis_score', 0), 4), 'rank': i+1} for i, r in enumerate(recommendations)]
                 db_utils.save_recommendation(sid, assessment.id, rec_list, weights, version=0)
         except Exception:
             pass
 
     except Exception as e:
+        print("算法异常:", e)
         # 算法失败时使用基于霍兰德的简单推荐
         recommendations = _simple_recommend(mbti, holland)
 
@@ -396,6 +446,7 @@ def recommend_page(request):
         'zxf_advices': zxf_advices[:3],
         'gaokao_score': gaokao_score,
     })
+
 
 
 def game_page(request):
