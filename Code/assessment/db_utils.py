@@ -102,3 +102,18 @@ def get_user_dialogues(session_id):
     if user:
         return DialogueLog.objects.filter(recommendation__user=user).order_by('timestamp')
     return []
+
+
+# ========== 检查函数 ==========
+
+def is_assessment_complete(assessment):
+    """检查测评数据是否完整"""
+    if not assessment:
+        return False
+    if not assessment.holland_code:
+        return False
+    if not assessment.holland_scores:
+        return False
+    if not assessment.mbti_type:
+        return False
+    return True

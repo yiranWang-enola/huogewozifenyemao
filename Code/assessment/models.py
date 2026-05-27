@@ -3,20 +3,24 @@ import json
 import uuid
 
 
+# ============================================================
+# 用户档案表
+# ============================================================
 class UserProfile(models.Model):
-    session_id = models.CharField(max_length=100, unique=True, default=uuid.uuid4) #用户唯一标识
-    gaokao_score = models.IntegerField(null=True, blank=True) #高考分数
-    province = models.CharField(max_length=50, blank=True) #省份
-    city = models.CharField(max_length=50, blank=True)  #城市
-    school = models.CharField(max_length=100, blank=True)  #学校
-    selected_subjects = models.CharField(max_length=200, blank=True, help_text="如: 物理+化学+地理")  #选考科目
-    interests = models.TextField(blank=True, help_text="兴趣关键词，逗号分隔")  #兴趣关键词
-    created_at = models.DateTimeField(auto_now_add=True) #创建时间
-    updated_at = models.DateTimeField(auto_now=True) #更新时间
+    session_id = models.CharField(max_length=100, unique=True, default=uuid.uuid4)
+    gaokao_score = models.IntegerField(null=True, blank=True)
+    province = models.CharField(max_length=50, blank=True)
+    city = models.CharField(max_length=50, blank=True)
+    school = models.CharField(max_length=100, blank=True)
+    selected_subjects = models.CharField(max_length=200, blank=True, help_text="如: 物理+化学+地理")
+    interests = models.TextField(blank=True, help_text="兴趣关键词，逗号分隔")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"UserProfile({self.session_id})" #返回用户唯一标识
+        return f"UserProfile({self.session_id})"
 
+   
 
 class AssessmentResult(models.Model):
     user = models.OneToOneField(UserProfile, on_delete=models.CASCADE, related_name='assessment') #一对一关联，一个用户对应一个评估结果
