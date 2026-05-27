@@ -576,6 +576,7 @@ def report_page(request):
     holland = request.session.get('holland', '')
     holland_top3 = request.session.get('holland_top3', [])
     holland_scores = request.session.get('holland_scores', {})
+    #比例*20
     holland_scores = {k: v * 20 for k, v in holland_scores.items()}
     recommendations = request.session.get('recommendations', [])
     weights = request.session.get('current_weights', {})
