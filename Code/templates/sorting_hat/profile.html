@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}个人画像 - 霍格沃兹分业帽{% endblock %}
+
+{% block content %}
+{% with current_step='profile' %}
+<div class="card">
+    <h1>🎨 个人画像</h1>
+    <p style="color: #94a3b8; margin-top: 10px;">完善你的个人信息，让我们为你定制专属推荐</p>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>📊 测试结果回顾</h2>
+        
+        <div class="result-box mbti-result">
+            <h3>🧠 MBTI 性格类型</h3>
+            <div class="result-type">{{ mbti }} - {{ mbti_name }}</div>
+            <div class="result-desc">{{ mbti_desc_text }}</div>
+        </div>
+        
+        <div class="result-box holland-result">
+            <h3>🎯 霍兰德职业兴趣</h3>
+            <div class="result-type">{{ holland }}</div>
+            <div class="holland-breakdown">
+                {% for type_info in holland_types %}
+                <div class="holland-item">
+                    <span class="holland-code">{{ type_info.code }}</span>
+                    <span class="holland-name">{{ type_info.name }}</span>
+                    <span class="holland-score">{{ type_info.score }}分</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <form method="post" action="{% url 'profile' %}">
+            {% csrf_token %}
+            
+            <h2 style="margin-top: 30px;">📝 学业成绩</h2>
+            <input type="number" name="score" placeholder="请输入预估分数（如：580）" 
+                   class="form-input" min="0" max="750" value="{{ score|default:'' }}">
+            
+            <h2 style="margin-top: 30px;">📚 选科组合</h2>
+            <select name="subject" class="form-select">
+                <option value="">请选择选科组合</option>
+                <option value="物化生" {% if subject == '物化生' %}selected{% endif %}>物化生</option>
+                <option value="物化政" {% if subject == '物化政' %}selected{% endif %}>物化政</option>
+                <option value="物化地" {% if subject == '物化地' %}selected{% endif %}>物化地</option>
+                <option value="历政地" {% if subject == '历政地' %}selected{% endif %}>历政地</option>
+                <option value="历政生" {% if subject == '历政生' %}selected{% endif %}>历政生</option>
+            </select>
+            
+            <h2 style="margin-top: 30px;">💡 兴趣领域</h2>
+            <select name="interest" class="form-select">
+                <option value="">请选择兴趣领域</option>
+                <option value="工程技术" {% if interest == '工程技术' %}selected{% endif %}>工程技术</option>
+                <option value="金融经济" {% if interest == '金融经济' %}selected{% endif %}>金融经济</option>
+                <option value="医学" {% if interest == '医学' %}selected{% endif %}>医学</option>
+                <option value="计算机" {% if interest == '计算机' %}selected{% endif %}>计算机</option>
+                <option value="文学艺术" {% if interest == '文学艺术' %}selected{% endif %}>文学艺术</option>
+                <option value="教育" {% if interest == '教育' %}selected{% endif %}>教育</option>
+            </select>
+            
+            <div style="margin-top: 30px; display: flex; gap: 15px;">
+                <a href="{% url 'holland_test' %}" class="btn-secondary">← 重新测试</a>
+                <button type="submit" class="btn-primary">生成推荐 →</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>🎯 画像预览</h2>
+        <div style="color: #94a3b8;">
+            <p>你的测试结果已显示在左侧，填写学业信息后即可生成个性化推荐方案。</p>
+        </div>
+        
+        <h3 style="margin-top: 30px;">💡 小贴士</h3>
+        <ul style="color: #64748b; line-height: 2; padding-left: 20px;">
+            <li>MBTI结果基于30道真实测试题目计算得出</li>
+            <li>霍兰德代码由得分最高的三种类型组成</li>
+            <li>分数将帮助筛选适合的院校层次</li>
+            <li>选科组合决定了可报考的专业范围</li>
+        </ul>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}分业帽博弈 - 霍格沃兹分业帽{% endblock %}
+
+{% block content %}
+{% with current_step='game' %}
+<div class="card">
+    <h1>🎩 分业帽博弈</h1>
+    <p style="color: #94a3b8; margin-top: 10px;">与分业帽对话，优化你的专业选择方案</p>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>💬 对话分业帽</h2>
+        <div class="chat" id="chat">
+            <div class="message hat-message">
+                <span class="avatar">🎩</span>
+                <div class="content">
+                    <strong>分业帽：</strong>你好！我已经分析了你的测试结果。你的MBTI类型是 {{ mbti }}，霍兰德代码是 {{ holland }}。你对推荐结果有什么想法吗？
+                </div>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <input type="text" id="message" placeholder="输入你的消息..." class="form-input" style="flex: 1;">
+            <button onclick="sendMessage()" class="btn-primary">发送</button>
+        </div>
+        
+        <form method="post" action="{% url 'game' %}" style="margin-top: 30px; display: flex; gap: 15px;">
+            {% csrf_token %}
+            <a href="{% url 'recommend' %}" class="btn-secondary">← 返回推荐</a>
+            <button type="submit" name="next" value="true" class="btn-primary">查看报告 →</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>🎯 最终方案</h2>
+        <div id="final">
+            <div style="background: rgba(99, 102, 241, 0.1); padding: 20px; border-radius: 10px;">
+                <p style="color: #818cf8; font-weight: bold;">正在优化中...</p>
+                <p style="color: #64748b; margin-top: 10px;">与分业帽对话，调整推荐权重</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function sendMessage() {
+        const input = document.getElementById('message');
+        const chat = document.getElementById('chat');
+        const msg = input.value.trim();
+        
+        if (msg) {
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user-message';
+            userMsg.innerHTML = `<span class="avatar">👤</span><div class="content"><strong>你：</strong>${msg}</div>`;
+            chat.appendChild(userMsg);
+            
+            setTimeout(() => {
+                const hatMsg = document.createElement('div');
+                hatMsg.className = 'message hat-message';
+                hatMsg.innerHTML = `<span class="avatar">🎩</span><div class="content"><strong>分业帽：</strong>我理解你的想法。让我根据你的反馈调整推荐方案...</div>`;
+                chat.appendChild(hatMsg);
+                chat.scrollTop = chat.scrollHeight;
+            }, 1000);
+            
+            input.value = '';
+            chat.scrollTop = chat.scrollHeight;
+        }
+    }
+    
+    document.getElementById('message').addEventListener('keypress', e => {
+        if (e.key === 'Enter') sendMessage();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}首页 - 霍格沃兹分业帽{% endblock %}
+
+{% block content %}
+{% with current_step='home' %}
+<div class="card welcome-card">
+    <h1>🎩 欢迎来到霍格沃兹分业帽</h1>
+    <p style="color: #94a3b8; margin-top: 15px; font-size: 1.1em;">
+        通过科学的性格测试和职业兴趣测试，找到最适合你的专业方向
+    </p>
+</div>
+
+<div class="grid">
+    <div class="card test-card">
+        <div class="test-icon">🧠</div>
+        <h2>MBTI 性格测试</h2>
+        <p style="color: #64748b; margin: 15px 0;">
+            30道真实测试题目，基于四个维度分析你的性格类型
+        </p>
+        <div class="dimensions">
+            <span class="dim-tag">E/I 外向-内向</span>
+            <span class="dim-tag">S/N 感觉-直觉</span>
+            <span class="dim-tag">T/F 思考-情感</span>
+            <span class="dim-tag">J/P 判断-知觉</span>
+        </div>
+        <a href="{% url 'mbti_test' %}" class="btn-primary" style="margin-top: 20px;">
+            开始 MBTI 测试 →
+        </a>
+    </div>
+
+    <div class="card test-card">
+        <div class="test-icon">🎯</div>
+        <h2>霍兰德职业兴趣测试</h2>
+        <p style="color: #64748b; margin: 15px 0;">
+            30道真实测试题目，基于六种类型分析你的职业兴趣
+        </p>
+        <div class="dimensions">
+            <span class="dim-tag">R 现实型</span>
+            <span class="dim-tag">I 研究型</span>
+            <span class="dim-tag">A 艺术型</span>
+            <span class="dim-tag">S 社会型</span>
+            <span class="dim-tag">E 企业型</span>
+            <span class="dim-tag">C 常规型</span>
+        </div>
+        <a href="{% url 'holland_test' %}" class="btn-secondary" style="margin-top: 20px;">
+            先做霍兰德测试 →
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>📋 测试流程说明</h2>
+    <div class="flow-steps">
+        <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-text">完成 MBTI 测试<br>(30道题)</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-text">完成霍兰德测试<br>(30道题)</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-text">填写个人画像<br>(分数、选科)</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+            <div class="flow-num">4</div>
+            <div class="flow-text">查看推荐结果<br>与分业帽对话</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+            <div class="flow-num">5</div>
+            <div class="flow-text">生成最终报告</div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}
