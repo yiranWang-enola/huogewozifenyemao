@@ -525,10 +525,12 @@ def report_page(request):
     holland = request.session.get('holland', '')
     holland_top3 = request.session.get('holland_top3', [])
     holland_scores = request.session.get('holland_scores', {})
+    holland_scores = {k: v * 20 for k, v in holland_scores.items()}
     recommendations = request.session.get('recommendations', [])
     weights = request.session.get('current_weights', {})
     mbti_scores = request.session.get('mbti_scores', {})
-
+    mbti_scores = {k: v * 10 for k, v in mbti_scores.items()}
+    
     # 张雪峰建议
     zxf_advices = []
     for code, score in sorted(holland_scores.items(), key=lambda x: x[1], reverse=True)[:2]:
