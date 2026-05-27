@@ -7,6 +7,11 @@ class UserProfile(models.Model):
     session_id = models.CharField(max_length=100, unique=True, default=uuid.uuid4) #用户唯一标识
     gaokao_score = models.IntegerField(null=True, blank=True) #高考分数
     province = models.CharField(max_length=50, blank=True) #省份
+     # 在你的用户模型里追加这三行
+    chinese_score = models.IntegerField(null=True, blank=True)
+    math_score = models.IntegerField(null=True, blank=True)
+    physics_score = models.IntegerField(null=True, blank=True)
+    history_score = models.IntegerField(null=True, blank=True)
     city = models.CharField(max_length=50, blank=True)  #城市
     school = models.CharField(max_length=100, blank=True)  #学校
     selected_subjects = models.CharField(max_length=200, blank=True, help_text="如: 物理+化学+地理")  #选考科目
