@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% with current_step='game' %}
+
+{% block content %}
+{% csrf_token %}
+<div class="card">
+    <h1>🎩 AHP博弈优化</h1>
+    <p style="color: #94a3b8; margin-bottom: 20px;">通过7组成对比较问题，精确计算你对各维度的偏好权重</p>
+
+    <div class="grid">
+        <!-- 左侧：问题区域 -->
+        <div>
+            <div class="card" id="question-card">
+                {% if not completed and current_question %}
+                <!-- 显示当前问题 -->
+                <div id="question-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>🎯 问题 {{ progress }}</h2>
+                        <div class="progress-bar" style="width: 200px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden;">
+                            <div id="progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #f59e0b, #fbbf24); transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="question-text" style="font-size: 1.2em; margin-bottom: 30px; padding: 20px; background: rgba(30, 41, 59, 0.5); border-radius: 12px; border-left: 4px solid #f59e0b;">
+                        {{ current_question.question }}
+                    </div>
+                    
+                    <div class="options" style="display: flex; flex-direction: column; gap: 15px;">
+                        <button type="button" class="option-btn" id="option-a" onclick="submitAnswer('a')" style="text-align: left; padding: 20px; background: rgba(30, 41, 59, 0.8); border: 2px solid #475569; border-radius: 12px; cursor: pointer; transition: all 0.3s; color: #f1f5f9;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em;">A</span>
+                                <div class="option-text">{{ current_question.option_a }}</div>
+                            </div>
+                        </button>
+                        
+                        <button type="button" class="option-btn" id="option-b" onclick="submitAnswer('b')" style="text-align: left; padding: 20px; background: rgba(30, 41, 59, 0.8); border: 2px solid #475569; border-radius: 12px; cursor: pointer; transition: all 0.3s; color: #f1f5f9;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span style="width: 40px; height: 40px; background: linear-gradient(135deg, #ec4899, #db2777); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em;">B</span>
+                                <div class="option-text">{{ current_question.option_b }}</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                {% elif completed %}
+                <!-- 显示完成结果 -->
+                <div id="completed-container" style="text-align: center; padding: 40px;">
+                    <div style="font-size: 4em; margin-bottom: 20px;">✅</div>
+                    <h2 style="margin-bottom: 20px;">博弈优化完成！</h2>
+                    <p style="color: #94a3b8; margin-bottom: 30px;">基于你的7组选择，AHP算法已计算出各维度权重</p>
+                    
+                    <div style="background: rgba(30, 41, 59, 0.5); border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+                        <h3 style="margin-bottom: 15px;">📊 计算出的权重</h3>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                            {% for dim, weight in final_weights.items %}
+                            <div style="background: rgba(15, 23, 42, 0.5); padding: 15px; border-radius: 8px;">
+                                <div style="font-size: 1.5em; font-weight: bold; color: #fbbf24;">{{ dim }}</div>
+                                <div style="color: #94a3b8; font-size: 0.9em;">
+                                    {% if dim == 'R' %}现实型{% endif %}
+                                    {% if dim == 'I' %}研究型{% endif %}
+                                    {% if dim == 'A' %}艺术型{% endif %}
+                                    {% if dim == 'S' %}社会型{% endif %}
+                                    {% if dim == 'E' %}企业型{% endif %}
+                                    {% if dim == 'C' %}常规型{% endif %}
+                                </div>
+                                <div style="font-size: 1.3em; font-weight: 600; margin-top: 10px;">{{ weight|floatformat:4 }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="report">
+                        <button type="submit" class="btn-primary" style="font-size: 1.1em; padding: 15px 40px;">
+                            查看最终报告 →
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <!-- 无问题可显示 -->
+                <div style="text-align: center; padding: 40px;">
+                    <p style="color: #94a3b8;">暂无问题，请返回重新测试</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- 答题进度指示器 -->
+            <div class="card" style="padding: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="color: #94a3b8;">答题进度</span>
+                    <span id="progress-text" style="font-weight: 600;">{{ progress }}</span>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    {% for i in "1234567" %}
+                    <div class="progress-dot {% if forloop.counter <= current_question.question_id|default:0 %}active{% endif %}" 
+                         style="flex: 1; height: 8px; background: {% if forloop.counter <= current_question.question_id|default:0 %}#f59e0b{% else %}#334155{% endif %}; border-radius: 4px; transition: background 0.3s;">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：说明和推荐 -->
+        <div>
+            <!-- AHP说明 -->
+            <div class="card">
+                <h2>📖 关于AHP博弈</h2>
+                <p style="color: #94a3b8; margin-bottom: 15px;">
+                    AHP（层次分析法）通过成对比较来确定各维度的相对重要性。每道题你会看到两个选项，选择更符合你偏好的那个。
+                </p>
+                <div style="background: rgba(30, 41, 59, 0.5); padding: 15px; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span style="color: #fbbf24;">💡</span>
+                        <span style="font-weight: 600;">维度说明</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.9em; color: #94a3b8;">
+                        <div><strong style="color: #f1f5f9;">R</strong> - 现实型</div>
+                        <div><strong style="color: #f1f5f9;">I</strong> - 研究型</div>
+                        <div><strong style="color: #f1f5f9;">A</strong> - 艺术型</div>
+                        <div><strong style="color: #f1f5f9;">S</strong> - 社会型</div>
+                        <div><strong style="color: #f1f5f9;">E</strong> - 企业型</div>
+                        <div><strong style="color: #f1f5f9;">C</strong> - 常规型</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 当前推荐列表 -->
+            <div class="card">
+                <h2>📊 当前推荐列表</h2>
+                {% for rec in recommendations %}
+                <div class="recommend-item" style="padding: 12px; background: rgba(30, 41, 59, 0.5); border-radius: 8px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="margin: 0;">#{{ forloop.counter }} {{ rec.name }}</h4>
+                        <span style="background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #0f172a; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 0.9em;">{{ rec.score|floatformat:4 }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <p style="color: #94a3b8;">暂无推荐结果</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="submit-section">
+        <a href="{% url 'recommend' %}" class="btn-secondary">← 返回推荐</a>
+    </div>
+</div>
+
+<style>
+.option-btn:hover {
+    border-color: #f59e0b !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+.option-btn.selected {
+    border-color: #f59e0b !important;
+    background: rgba(245, 158, 11, 0.1) !important;
+}
+.option-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentQuestionId = {{ current_question.question_id|default:0 }};
+let isSubmitting = false;
+
+function submitAnswer(answer) {
+    if (isSubmitting) return;
+    isSubmitting = true;
+    
+    // 禁用按钮并显示选中状态
+    document.getElementById('option-a').disabled = true;
+    document.getElementById('option-b').disabled = true;
+    document.getElementById('option-' + answer).classList.add('selected');
+    
+    // 发送AJAX请求
+    fetch(window.location.href, {
+        method: 'POST',
+        body: JSON.stringify({
+            action: 'submit_answer',
+            question_id: currentQuestionId,
+            answer: answer
+        }),
+        headers: { 
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        isSubmitting = false;
+        
+        if (data.success) {
+            if (data.completed) {
+                // 所有问题完成，刷新页面显示结果
+                window.location.reload();
+            } else {
+                // 显示下一题
+                updateQuestion(data.next_question);
+            }
+        } else {
+            alert('提交失败，请重试');
+            document.getElementById('option-a').disabled = false;
+            document.getElementById('option-b').disabled = false;
+        }
+    })
+    .catch(function(error) {
+        isSubmitting = false;
+        console.error('Error:', error);
+        alert('网络错误，请重试');
+        document.getElementById('option-a').disabled = false;
+        document.getElementById('option-b').disabled = false;
+    });
+}
+
+function updateQuestion(question) {
+    currentQuestionId = question.question_id;
+    
+    // 更新问题文本
+    document.querySelector('.question-text').textContent = question.question;
+    
+    // 更新选项
+    document.querySelector('#option-a .option-text').textContent = question.option_a;
+    document.querySelector('#option-b .option-text').textContent = question.option_b;
+    
+    // 更新进度
+    document.getElementById('progress-text').textContent = question.progress;
+    document.querySelector('h2').textContent = '🎯 问题 ' + question.progress;
+    
+    // 更新进度条
+    const progressParts = question.progress.split('/');
+    const current = parseInt(progressParts[0]);
+    const total = parseInt(progressParts[1]);
+    const percentage = (current / total) * 100;
+    document.getElementById('progress-fill').style.width = percentage + '%';
+    
+    // 更新进度点
+    const dots = document.querySelectorAll('.progress-dot');
+    dots.forEach((dot, index) => {
+        if (index < current) {
+            dot.style.background = '#f59e0b';
+        }
+    });
+    
+    // 重置按钮状态
+    document.getElementById('option-a').disabled = false;
+    document.getElementById('option-b').disabled = false;
+    document.getElementById('option-a').classList.remove('selected');
+    document.getElementById('option-b').classList.remove('selected');
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 可以添加初始化逻辑
+});
+</script>
+{% endblock %}
+
+{% endwith %}

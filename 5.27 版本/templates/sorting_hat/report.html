@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}最终报告 - 霍格沃兹分业帽{% endblock %}
+
+{% block content %}
+{% with current_step='report' %}
+<div class="card">
+    <h1>📜 霍格沃兹分业帽报告</h1>
+    <p style="color: #94a3b8; margin-top: 10px;">你的专属专业选择分析报告</p>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>👤 测试结果汇总</h2>
+        
+        <div class="result-box">
+            <h3>🧠 MBTI 性格类型</h3>
+            <div class="result-type large">{{ mbti }} - {{ mbti_desc.name|default:"" }}</div>
+            <div class="result-desc">{{ mbti_desc.desc|default:"" }}</div>
+            <div class="dimension-detail">
+                <p>外向(E)/内向(I): {{ mbti_scores.E|default:0 }} vs {{ mbti_scores.I|default:0 }}</p>
+                <p>感觉(S)/直觉(N): {{ mbti_scores.S|default:0 }} vs {{ mbti_scores.N|default:0 }}</p>
+                <p>思考(T)/情感(F): {{ mbti_scores.T|default:0 }} vs {{ mbti_scores.F|default:0 }}</p>
+                <p>判断(J)/知觉(P): {{ mbti_scores.J|default:0 }} vs {{ mbti_scores.P|default:0 }}</p>
+            </div>
+        </div>
+        
+        <div class="result-box">
+            <h3>🎯 霍兰德职业兴趣</h3>
+            <div class="result-type large">{{ holland }}</div>
+            <div class="holland-detail">
+                {% for type_info in holland_types %}
+                <div class="holland-detail-item">
+                    <span class="code">{{ type_info.code }}</span>
+                    <span class="name">{{ type_info.name }}</span>
+                    <span class="score">{{ type_info.score }}/5</span>
+                    <span class="desc">{{ type_info.desc }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📊 个人信息</h2>
+        <table class="info-table">
+            <tr><td>预估分数</td><td>{{ score|default:"未填写" }}</td></tr>
+            <tr><td>选科组合</td><td>{{ subject|default:"未填写" }}</td></tr>
+            <tr><td>兴趣领域</td><td>{{ interest|default:"未填写" }}</td></tr>
+        </table>
+        
+        <h2 style="margin-top: 30px;">🎯 最终推荐</h2>
+        <div class="final-recommend">
+            <div class="recommend-main">
+                <h3>🏆 首选专业</h3>
+                <p style="font-size: 1.3em; color: #22c55e;">基于测试结果推荐</p>
+                <p style="color: #64748b;">匹配度：96%</p>
+            </div>
+            <div class="recommend-backup">
+                <h3>🥈 备选专业</h3>
+                <p style="color: #818cf8;">相关专业方向</p>
+                <p style="color: #64748b;">匹配度：88-92%</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>📝 专家建议</h2>
+    <div style="background: rgba(99, 102, 241, 0.1); padding: 20px; border-radius: 10px; border-left: 4px solid #6366f1;">
+        <p style="color: #e2e8f0; line-height: 1.8;">
+            基于霍格沃兹分业帽的全面分析，你的 {{ mbti }} 性格类型和 {{ holland }} 霍兰德代码表明你在相关领域有天然优势。
+            建议在填报志愿时，将推荐专业作为重点考虑方向，同时准备2-3个相关专业作为备选。
+        </p>
+    </div>
+    
+    <div style="margin-top: 30px; display: flex; gap: 15px; justify-content: center;">
+        <a href="{% url 'game' %}" class="btn-secondary">← 返回博弈</a>
+        <a href="{% url 'home' %}" class="btn-primary">重新开始 →</a>
+        <button onclick="window.print()" class="btn-print">🖨️ 打印报告</button>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}

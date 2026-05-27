@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% with current_step='profile' %}
+
+{% block content %}
+<div class="card">
+    <h1>📝 个人信息</h1>
+
+    <div class="grid">
+        <!-- 左侧：测试结果回顾 -->
+        <div>
+            <div class="card">
+                <h2>🧠 MBTI 结果回顾</h2>
+                <div class="result-box">
+                    <div class="result-type">{{ mbti }} - {{ mbti_name }}</div>
+                    <div class="result-desc">{{ mbti_desc }}</div>
+                    <p style="margin-top: 8px; color: #818cf8;">文理倾向：{{ mbti_as }}</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🎯 霍兰德结果回顾</h2>
+                <div class="result-box">
+                    <div class="result-type">{{ holland }}</div>
+                    {% for item in holland_top3 %}
+                    <div class="recommend-item">
+                        <h3>{{ item.name }}（{{ item.type }}）- {{ item.score }}分</h3>
+                        <p style="color: #94a3b8; font-size: 0.9em;">特质：{{ item.trait }}</p>
+                        <p style="color: #22c55e; font-size: 0.9em;">推荐专业：{{ item.majors }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：信息填写 + 小贴士 -->
+        <div>
+            <div class="card">
+                <h2>📋 填写个人信息</h2>
+                <form method="post" action="{% url 'profile' %}">
+                    {% csrf_token %}
+
+                    <label style="color: #94a3b8; display: block; margin-bottom: 6px;">高考分数</label>
+                    <input type="number" name="gaokao_score" class="form-input" placeholder="请输入你的高考分数" required>
+
+                    <label style="color: #94a3b8; display: block; margin-bottom: 6px;">省份</label>
+                    <input type="text" name="province" class="form-input" placeholder="请输入你所在的省份" required>
+
+                    <label style="color: #94a3b8; display: block; margin-bottom: 6px;">选考科目</label>
+                    <input type="text" name="subjects" class="form-input" placeholder="请输入你的选考科目" required>
+
+                    <label style="color: #94a3b8; display: block; margin-bottom: 6px;">兴趣关键词</label>
+                    <input type="text" name="interests" class="form-input" placeholder="如：计算机,金融,医学">
+
+                    <div style="margin-top: 20px;">
+                        <button type="submit" class="btn-primary" style="width: 100%;">生成初始推荐 →</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>💡 小贴士</h3>
+                <div class="recommend-item">
+                    <p style="color: #94a3b8; font-size: 0.9em;">📊 <strong style="color: #818cf8;">高考分数</strong>用于TOPSIS算法的适配度计算，帮助你找到与分数匹配的专业</p>
+                </div>
+                <div class="recommend-item">
+                    <p style="color: #94a3b8; font-size: 0.9em;">🔍 <strong style="color: #818cf8;">兴趣关键词</strong>用于语义匹配引擎，智能匹配你感兴趣的专业方向</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% endwith %}

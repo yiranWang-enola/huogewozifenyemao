@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}霍兰德测试 - 霍格沃兹分业帽{% endblock %}
+
+{% block content %}
+{% with current_step='holland' %}
+<div class="card">
+    <h1>🎯 霍兰德职业兴趣测试</h1>
+    <div class="progress-bar">
+        <div class="progress-info">
+            <span>题目进度</span>
+            <span id="progress-text">0 / {{ total }}</span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+    </div>
+    <p style="color: #64748b; margin-top: 15px;">
+        请判断以下描述是否符合你的情况，选择"是"或"否"
+    </p>
+</div>
+
+<form method="post" action="{% url 'holland_test' %}" id="test-form">
+    {% csrf_token %}
+    
+    <div class="questions-container">
+        {% for question in questions %}
+        <div class="question-card" id="q{{ question.id }}">
+            <div class="question-header">
+                <span class="question-num">第 {{ question.id }} 题</span>
+                <span class="question-type type-{{ question.type }}">{{ question.type }}</span>
+            </div>
+            <div class="question-text">{{ question.text }}</div>
+            <div class="options holland-options">
+                <label class="option-label yes-option">
+                    <input type="radio" name="q{{ question.id }}" value="yes" onchange="updateProgress()">
+                    <span class="option-text">✓ 是，符合我</span>
+                </label>
+                <label class="option-label no-option">
+                    <input type="radio" name="q{{ question.id }}" value="no" onchange="updateProgress()">
+                    <span class="option-text">✗ 否，不符合</span>
+                </label>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="submit-section">
+        <a href="{% url 'mbti_test' %}" class="btn-secondary">← 返回MBTI测试</a>
+        <button type="submit" class="btn-primary" id="submit-btn">
+            提交测试 → 进入个人画像
+        </button>
+    </div>
+</form>
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const totalQuestions = {{ total }};
+    let answered = 0;
+    
+    function updateProgress() {
+        answered = 0;
+        for (let i = 1; i <= totalQuestions; i++) {
+            if (document.querySelector(`input[name="q${i}"]:checked`)) {
+                answered++;
+            }
+        }
+        
+        const percent = (answered / totalQuestions) * 100;
+        document.getElementById('progress-fill').style.width = percent + '%';
+        document.getElementById('progress-text').textContent = `${answered} / ${totalQuestions}`;
+        
+        for (let i = 1; i <= totalQuestions; i++) {
+            const card = document.getElementById(`q${i}`);
+            if (document.querySelector(`input[name="q${i}"]:checked`)) {
+                card.classList.add('answered');
+            } else {
+                card.classList.remove('answered');
+            }
+        }
+        
+        document.getElementById('submit-btn').disabled = answered < totalQuestions;
+    }
+    
+    document.getElementById('submit-btn').disabled = true;
+</script>
+{% endblock %}

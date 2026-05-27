@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% with current_step='home' %}
+
+{% block content %}
+<div class="card" style="text-align: center;">
+    <h1>🎩 欢迎来到霍格沃兹分业帽</h1>
+    <p style="color: #94a3b8; font-size: 1.1em; margin-bottom: 30px;">
+        通过科学的性格测试和职业兴趣测试，结合TOPSIS算法，找到最适合你的专业方向
+    </p>
+
+    <div class="grid">
+        <div class="card test-card">
+            <div class="test-icon">🧠</div>
+            <h2>MBTI 性格测试</h2>
+            <p style="color: #94a3b8; margin-bottom: 16px;">30道题 · 4个维度 · 深度解析你的性格类型</p>
+            <div class="dimensions">
+                <span class="dim-tag">外向/内向 (E/I)</span>
+                <span class="dim-tag">感觉/直觉 (S/N)</span>
+                <span class="dim-tag">思考/情感 (T/F)</span>
+                <span class="dim-tag">判断/感知 (J/P)</span>
+            </div>
+            <div style="margin-top: 24px;">
+                <a href="{% url 'mbti_test' %}" class="btn-primary">开始测试 →</a>
+            </div>
+        </div>
+
+        <div class="card test-card">
+            <div class="test-icon">🎯</div>
+            <h2>霍兰德职业兴趣测试</h2>
+            <p style="color: #94a3b8; margin-bottom: 16px;">30道题 · 6种类型 · 发现你的职业兴趣密码</p>
+            <div class="dimensions">
+                <span class="dim-tag type-R">现实型 (R)</span>
+                <span class="dim-tag type-I">研究型 (I)</span>
+                <span class="dim-tag type-A">艺术型 (A)</span>
+                <span class="dim-tag type-S">社会型 (S)</span>
+                <span class="dim-tag type-E">企业型 (E)</span>
+                <span class="dim-tag type-C">常规型 (C)</span>
+            </div>
+            <div style="margin-top: 24px;">
+                <a href="{% url 'holland_test' %}" class="btn-primary">开始测试 →</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+        <h3>📋 测试流程</h3>
+        <div class="flow-steps">
+            <div class="flow-step">
+                <div class="flow-num">1</div>
+                <div class="flow-text">MBTI测试</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-num">2</div>
+                <div class="flow-text">霍兰德测试</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-num">3</div>
+                <div class="flow-text">个人信息</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-num">4</div>
+                <div class="flow-text">初始推荐</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-num">5</div>
+                <div class="flow-text">博弈优化</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-num">6</div>
+                <div class="flow-text">最终报告</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+        <h3>✨ 系统特色</h3>
+        <div class="grid" style="text-align: left;">
+            <div class="recommend-item">
+                <h3>📊 TOPSIS算法推荐</h3>
+                <p style="color: #94a3b8;">基于多维度综合评价的科学推荐算法，精准匹配最适合你的专业</p>
+            </div>
+            <div class="recommend-item">
+                <h3>🔍 语义匹配引擎</h3>
+                <p style="color: #94a3b8;">智能分析你的兴趣关键词，深度匹配相关专业方向</p>
+            </div>
+            <div class="recommend-item">
+                <h3>⚖️ AHP博弈优化</h3>
+                <p style="color: #94a3b8;">通过对话式博弈，平衡个人兴趣与现实因素，优化推荐结果</p>
+            </div>
+            <div class="recommend-item">
+                <h3>🎓 张雪峰式建议</h3>
+                <p style="color: #94a3b8;">为每个推荐专业提供实用的报考建议和就业前景分析</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% endwith %}
