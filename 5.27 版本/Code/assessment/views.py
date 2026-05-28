@@ -244,10 +244,64 @@ def holland_test(request):
         'total': len(HOLLAND_QUESTIONS),
     })
 
+#====================== 新函数 =================
+
+def build_holland_top3_from_code(holland_code_input):
+    """根据霍兰德三码生成top3详情（复用已有的 HOLLAND_PROFILES）"""
+    code_upper = holland_code_input.upper()
+    # 默认分数（根据优先级递减）
+    default_points = {'R': 85, 'I': 88, 'A': 82, 'S': 90, 'E': 86, 'C': 80}
+    result_list = []
+    for idx, letter in enumerate(code_upper):
+        point = default_points.get(letter, 80) - idx * 3
+        if point < 65:
+            point = 65
+        # 复用已有的 HOLLAND_PROFILES
+        profile = HOLLAND_PROFILES.get(letter, {})
+        result_list.append({
+            'type': letter,
+            'name': profile.get('name', f'{letter}型'),
+            'score': point,
+            'trait': profile.get('traits', '特质待补充'),
+            'majors': ', '.join(profile.get('majors', ['多学科方向'])[:3])  # 取前3个专业
+        })
+    return result_list
+
 
 def profile_page(request):
     """个人信息页面"""
     if request.method == 'POST':
+       
+        # ========= 新增：处理MBTI手动修改 =====
+        if 'manual_update_mbti' in request.POST:
+            input_mbti_code = request.POST.get('manual_mbti_code', '').strip().upper()
+            if input_mbti_code in MBTI_PROFILES:
+                matched_profile = MBTI_PROFILES[input_mbti_code]
+                request.session['mbti'] = input_mbti_code
+                request.session['mbti_name'] = matched_profile.get('name', '')
+                request.session['mbti_desc'] = matched_profile.get('desc', '')
+                request.session['mbti_as'] = matched_profile.get('as', '')
+                messages.success(request, f'MBTI 已更新为：{input_mbti_code} - {matched_profile["name"]}')
+            else:
+                messages.error(request, f'无效的MBTI类型：{input_mbti_code}，请输入有效的4字母组合（如 INTJ, ENFP）')
+            return redirect('profile')
+        
+        # ========= 新增：处理 霍兰德职业测试 手动修改 =====
+  
+        if 'manual_update_holland' in request.POST:
+            input_holland_code = request.POST.get('manual_holland_code', '').strip().upper()
+            if len(input_holland_code) == 3 and all(ch in 'RIASEC' for ch in input_holland_code):
+                request.session['holland'] = input_holland_code
+                auto_top3 = build_holland_top3_from_code(input_holland_code)
+                request.session['holland_top3'] = auto_top3
+                messages.success(request, f'霍兰德已更新为：{input_holland_code}')
+            else:
+                messages.error(request, f'无效的霍兰德代码：{input_holland_code}，请输入3个字母（如 SEC, RIA）')
+            return redirect('profile')
+    
+        
+        
+        #============== 原有的 ======================
         gaokao_score = request.POST.get('gaokao_score', '')
         province = request.POST.get('province', '')
         selected_subjects = request.POST.get('subject', '')
