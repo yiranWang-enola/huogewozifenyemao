@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% with current_step='recommend' %}
+
+{% block content %}
+<div class="card">
+    <h1>🎯 初始推荐结果（基于TOPSIS算法）</h1>
+
+    <div class="grid">
+        <!-- 左侧：推荐专业列表 -->
+        <div>
+            <div class="card">
+                <h2>📊 推荐专业列表</h2>
+                {% for rec in recommendations %}
+                <div class="recommend-item">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>#{{ forloop.counter }} {{ rec.name }}</h3>
+                        <span class="match-rate">{{ rec.score }}分</span>
+                    </div>
+                </div>
+                {% empty %}
+                <p style="color: #94a3b8;">暂无推荐结果</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 右侧 -->
+        <div>
+            <!-- 权重分析 -->
+            {% if weights %}
+            <div class="card">
+                <h2>⚖️ 权重分析</h2>
+                <div class="score-bars">
+                    <div class="score-bar">
+                        <span>性格适配</span>
+                        <div class="bar"><div style="width: {{ weights.personality_fit }}%;"></div></div>
+                        <span>{{ weights.personality_fit }}%</span>
+                    </div>
+                    <div class="score-bar">
+                        <span>兴趣匹配</span>
+                        <div class="bar"><div style="width: {{ weights.interest_match }}%;"></div></div>
+                        <span>{{ weights.interest_match }}%</span>
+                    </div>
+                    <div class="score-bar">
+                        <span>分数适配</span>
+                        <div class="bar"><div style="width: {{ weights.gaokao_fit }}%;"></div></div>
+                        <span>{{ weights.gaokao_fit }}%</span>
+                    </div>
+                    <div class="score-bar">
+                        <span>就业率</span>
+                        <div class="bar"><div style="width: {{ weights.employment_rate }}%;"></div></div>
+                        <span>{{ weights.employment_rate }}%</span>
+                    </div>
+                    <div class="score-bar">
+                        <span>薪资水平</span>
+                        <div class="bar"><div style="width: {{ weights.salary_level }}%;"></div></div>
+                        <span>{{ weights.salary_level }}%</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 张雪峰式建议 -->
+            <div class="card">
+                <h2>🎓 张雪峰式建议</h2>
+                {% for advice in zxf_advices %}
+                <div class="recommend-item">
+                    <p style="color: #e2e8f0; line-height: 1.6;">{{ advice }}</p>
+                </div>
+                {% empty %}
+                <p style="color: #94a3b8;">暂无建议</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="submit-section">
+        <a href="{% url 'profile' %}" class="btn-secondary">← 返回个人信息</a>
+        <form method="post" action="{% url 'game' %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-primary">进入博弈优化 →</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% endwith %}

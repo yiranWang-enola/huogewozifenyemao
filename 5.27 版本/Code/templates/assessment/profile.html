@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% with current_step='profile' %}
+
+{% block content %}
+<div class="card">
+    <h1>📝 个人信息</h1>
+
+    <div class="grid">
+        
+        
+        <!-- 左侧：测试结果回顾 -->
+        <div>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between;align-items: ceenter;">
+                    <h2>🧠 MBTI 结果回顾</h2>
+                    <button type="button" class="edit-btn" onclick="toggleMbtiEdit()" style="font-size: 0.8rem; padding: 4px 12px;">✏️ 手动修改</button>
+                </div>
+                <div id="mbtiDisplay" class="result-box">
+                    <div class="result-type">{{ mbti }} - {{ mbti_name }}</div>
+                    <div class="result-desc">{{ mbti_desc }}</div>
+                    <p style="margin-top: 8px; color: #818cf8;">文理倾向：{{ mbti_as }}</p>
+                </div>
+                <!-- MBTI 编辑表单（隐藏）- 简化版 -->
+                 <div id="mbtiEditForm" style="display: none; margin-top: 15px;">
+                    <form method="post" action="{% url 'profile' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="manual_update_mbti" value="1">
+                        <div class="input-group">
+                            <label>MBTI类型（输入4个字母，如 INFJ、INTJ）</label>
+                            <input type="text" name="manual_mbti_code" class="form-input" value="{{ mbti }}" placeholder="例如: INTJ, ENFP, INFJ" 
+                                    maxlength="4" style="text-transform: uppercase;" required>
+                            <small style="color: #64748b; font-size: 0.75rem;">✨ 输入后自动生成中文名称、描述和文理倾向</small>
+                        </div>
+                        <button type="submit" class="btn-primary" style="width: 100%;">保存 MBTI 修改</button>
+                        <button type="button" class="btn-secondary" onclick="toggleMbtiEdit()">取消</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>🎯 霍兰德结果回顾</h2>
+                    <button type="button" class="edit-btn" onclick="toggleHollandEdit()" style="font-size: 0.8rem; padding: 4px 12px;">✏️ 手动修改</button>
+                </div>
+                    <div id="hollandDisplay" class="result-box">
+                        <div class="result-type">{{ holland }}</div>
+                        {% for item in holland_top3 %}
+                        <div class="recommend-item">
+                            <h3>{{ item.name }}（{{ item.type }}）- {{ item.score }}分</h3>
+                            <p style="color: #94a3b8; font-size: 0.9em;">特质：{{ item.trait }}</p>
+                            <p style="color: #22c55e; font-size: 0.9em;">推荐专业：{{ item.majors }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <!-- 霍兰德 编辑表单（隐藏）- 简化版 -->
+                    <div id="hollandEditForm" style="display: none; margin-top: 15px;">
+                        <form method="post" action="{% url 'profile' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="manual_update_holland" value="1">
+                            <div class="input-group">
+                                <label>霍兰德三码（输入3个字母，如 SEC、RIA）</label>
+                                <input type="text" name="manual_holland_code" class="form-input" value="{{ holland }}" 
+                                        placeholder="例如: SEC, RIA, AEC" maxlength="3" style="text-transform: uppercase;" required>
+                                    <small style="color: #64748b; font-size: 0.75rem;">✨ 输入后自动生成对应的职业类型推荐</small>
+                            </div>
+                            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">保存霍兰德修改</button>
+                            <button type="button" class="btn-secondary" onclick="toggleHollandEdit()" style="margin-top: 8px;">取消</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+               
+        <!-- 右侧：信息填写 + 小贴士 -->
+        <div class="card">
+        <h2>📋 填写个人信息</h2>
+        <form method="post" action="{% url 'profile' %}">
+            {% csrf_token %}
+
+            <label style="color: #94a3b8; display: block; margin-bottom: 6px;">高考分数</label>
+            <input type="number" name="gaokao_score" class="form-input" placeholder="请输入你的高考分数" required value="{{ gaokao_score }}">
+
+            <label style="color: #94a3b8; display: block; margin-bottom: 6px;">省份</label>
+            <input type="text" name="province" class="form-input" placeholder="请输入你所在的省份" required value="{{ province }}">
+
+            <label style="color: #94a3b8; display: block; margin-bottom: 6px;">选考科目</label>
+            <select id="subjectSelect" name="subject" class="form-select" required>
+                <option value="">请选择选科组合</option>
+                <option value="物化生" {% if selected_subjects == '物化生' %}selected{% endif %}>物化生</option>
+                <option value="物化政" {% if selected_subjects == '物化政' %}selected{% endif %}>物化政</option>
+                <option value="物化地" {% if selected_subjects == '物化地' %}selected{% endif %}>物化地</option>
+                <option value="历政地" {% if selected_subjects == '历政地' %}selected{% endif %}>历政地</option>
+                <option value="历政生" {% if selected_subjects == '历政生' %}selected{% endif %}>历政生</option>
+            </select>
+
+            <div id="scoreExtra" style="margin-top:12px; display: none;">
+                <label style="color: #94a3b8; display: block; margin-bottom: 6px;">语文分数</label>
+                <input type="number" name="chinese_score" class="form-input" placeholder="请输入语文分数" required value="{{ chinese_score }}">
+
+                <label style="color: #94a3b8; display: block; margin-bottom: 6px;">数学分数</label>
+                <input type="number" name="math_score" class="form-input" placeholder="请输入数学分数" required value="{{ math_score }}">
+
+                <label id="thirdLabel" style="color: #94a3b8; display: block; margin-bottom: 6px;"></label>
+                <input id="thirdInput" type="number" class="form-input" required>
+            </div>
+
+            <label style="color: #94a3b8; display: block; margin-bottom: 6px;">兴趣关键词</label>
+            <input type="text" name="interests" class="form-input" placeholder="如：计算机,金融,医学" value="{{ interests }}">
+
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn-primary" style="width: 100%;">生成初始推荐 →</button>
+            </div>
+        </form>
+
+        <script>
+            const select = document.getElementById('subjectSelect');
+            const extraBox = document.getElementById('scoreExtra');
+            const thirdLabel = document.getElementById('thirdLabel');
+            const thirdInput = document.getElementById('thirdInput');
+
+            select.addEventListener('change', function () {
+                const val = this.value;
+                if (['物化生', '物化政', '物化地'].includes(val)) {
+                    extraBox.style.display = 'block';
+                    thirdLabel.textContent = '物理分数';
+                    thirdInput.name = 'physics_score';
+                    thirdInput.placeholder = '请输入物理分数';
+                    thirdInput.value = "{{ physics_score }}";
+                } else if (['历政地', '历政生'].includes(val)) {
+                    extraBox.style.display = 'block';
+                    thirdLabel.textContent = '历史分数';
+                    thirdInput.name = 'history_score';
+                    thirdInput.placeholder = '请输入历史分数';
+                    thirdInput.value = "{{ history_score }}";
+                } else {
+                    extraBox.style.display = 'none';
+                }
+            })
+
+            // 页面加载自动展开对应分数栏，实现刷新回显
+            window.onload = function () {
+                select.dispatchEvent(new Event('change'));
+            }
+        </script>
+    </div>
+</div>
+
+            <div class="card">
+                <h3>💡 小贴士</h3>
+                <div class="recommend-item">
+                    <p style="color: #94a3b8; font-size: 0.9em;">📊 <strong style="color: #818cf8;">高考分数</strong>用于TOPSIS算法的适配度计算，帮助你找到与分数匹配的专业</p>
+                </div>
+                <div class="recommend-item">
+                    <p style="color: #94a3b8; font-size: 0.9em;">🔍 <strong style="color: #818cf8;">兴趣关键词</strong>用于语义匹配引擎，智能匹配你感兴趣的专业方向</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<style>
+.edit-btn {
+    background: transparent;
+    border: 1px solid #818cf8;
+    color: #4f46e5;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+}
+.edit-btn:hover {
+    background: #e0e7ff;
+}
+.btn-secondary {
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    color: #64748b;
+    padding: 8px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: 500;
+    margin-top: 8px;
+}
+.btn-secondary:hover {
+    background: #f1f5f9;
+}
+.input-group {
+    margin-bottom: 12px;
+}
+.input-group label {
+    display: block;
+    font-size: 0.85rem;
+    color: #475569;
+    margin-bottom: 4px;
+}
+.input-group input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+}
+</style>
+
+<script>
+function toggleMbtiEdit() {
+    var displayDiv = document.getElementById('mbtiDisplay');
+    var formDiv = document.getElementById('mbtiEditForm');
+    if (displayDiv.style.display === 'none') {
+        displayDiv.style.display = 'block';
+        formDiv.style.display = 'none';
+    } else {
+        displayDiv.style.display = 'none';
+        formDiv.style.display = 'block';
+    }
+}
+
+function toggleHollandEdit() {
+    var displayDiv = document.getElementById('hollandDisplay');
+    var formDiv = document.getElementById('hollandEditForm');
+    if (displayDiv.style.display === 'none') {
+        displayDiv.style.display = 'block';
+        formDiv.style.display = 'none';
+    } else {
+        displayDiv.style.display = 'none';
+        formDiv.style.display = 'block';
+    }
+}
+</script>
+
+{% endblock %}
+
+{% endwith %}

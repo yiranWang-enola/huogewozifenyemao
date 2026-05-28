@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% with current_step='report' %}
+
+{% block content %}
+<div class="card">
+    <h1>📜 最终报告</h1>
+
+    <!-- 信息汇总表格 -->
+    <div class="card">
+        <h2>📋 信息汇总</h2>
+        <table class="info-table">
+            <tr><td>MBTI类型</td><td>{{ mbti }} - {{ mbti_name }}</td></tr>
+            <tr><td>霍兰德代码</td><td>{{ holland }}</td></tr>
+            <tr><td>高考分数</td><td>{{ gaokao_score }}</td></tr>
+            <tr><td>省份</td><td>{{ province }}</td></tr>
+            <tr><td>选考科目</td><td>{{ subjects }}</td></tr>
+            <tr><td>兴趣关键词</td><td>{{ interests }}</td></tr>
+        </table>
+    </div>
+
+    <div class="grid">
+        <!-- MBTI维度得分 -->
+        <div class="card">
+            <h2>🧠 MBTI 维度得分</h2>
+            <div class="score-bars">
+                <div class="score-bar">
+                    <span>E / I</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.E }}%;"></div></div>
+                    <span>{{ mbti_scores.E }}%</span>
+                </div>
+                <div class="score-bar">
+                    <span>S / N</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.S }}%;"></div></div>
+                    <span>{{ mbti_scores.S }}%</span>
+                </div>
+                <div class="score-bar">
+                    <span>T / F</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.T }}%;"></div></div>
+                    <span>{{ mbti_scores.T }}%</span>
+                </div>
+                <div class="score-bar">
+                    <span>J / P</span>
+                    <div class="bar"><div style="width: {{ mbti_scores.J }}%;"></div></div>
+                    <span>{{ mbti_scores.J }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 霍兰德类型得分 -->
+        <div class="card">
+            <h2>🎯 霍兰德类型得分</h2>
+            <div class="score-bars">
+                <div class="score-bar">
+                    <span class="type-R">R 现实型</span>
+                    <div class="bar"><div style="width: {{ holland_scores.R }}%; background: linear-gradient(135deg, #f59e0b, #fbbf24);"></div></div>
+                    <span>{{ holland_scores.R }}</span>
+                </div>
+                <div class="score-bar">
+                    <span class="type-I">I 研究型</span>
+                    <div class="bar"><div style="width: {{ holland_scores.I }}%; background: linear-gradient(135deg, #3b82f6, #60a5fa);"></div></div>
+                    <span>{{ holland_scores.I }}</span>
+                </div>
+                <div class="score-bar">
+                    <span class="type-A">A 艺术型</span>
+                    <div class="bar"><div style="width: {{ holland_scores.A }}%; background: linear-gradient(135deg, #ec4899, #f472b6);"></div></div>
+                    <span>{{ holland_scores.A }}</span>
+                </div>
+                <div class="score-bar">
+                    <span class="type-S">S 社会型</span>
+                    <div class="bar"><div style="width: {{ holland_scores.S }}%; background: linear-gradient(135deg, #22c55e, #4ade80);"></div></div>
+                    <span>{{ holland_scores.S }}</span>
+                </div>
+                <div class="score-bar">
+                    <span class="type-E">E 企业型</span>
+                    <div class="bar"><div style="width: {{ holland_scores.E }}%; background: linear-gradient(135deg, #ef4444, #f87171);"></div></div>
+                    <span>{{ holland_scores.E }}</span>
+                </div>
+                <div class="score-bar">
+                    <span class="type-C">C 常规型</span>
+                    <div class="bar"><div style="width: {{ holland_scores.C }}%; background: linear-gradient(135deg, #8b5cf6, #a78bfa);"></div></div>
+                    <span>{{ holland_scores.C }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 推荐专业TOP10 -->
+    <div class="card">
+        <h2>🏆 推荐专业 TOP10</h2>
+        {% for rec in recommendations %}
+        <div class="recommend-item">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>#{{ forloop.counter }} {{ rec.name }}</h3>
+                <span class="match-rate">{{ rec.score }}分</span>
+            </div>
+        </div>
+        {% empty %}
+        <p style="color: #94a3b8;">暂无推荐结果</p>
+        {% endfor %}
+    </div>
+
+    <!-- 张雪峰建议 -->
+    <div class="card">
+        <h2>🎓 张雪峰建议</h2>
+        {% for advice in zxf_advices %}
+        <div class="recommend-item">
+            <p style="color: #e2e8f0; line-height: 1.6;">{{ advice }}</p>
+        </div>
+        {% empty %}
+        <p style="color: #94a3b8;">暂无建议</p>
+        {% endfor %}
+    </div>
+
+    <!-- 按钮区 -->
+    <div class="submit-section">
+        <a href="{% url 'game' %}" class="btn-secondary">← 返回博弈</a>
+        <a href="{% url 'home' %}" class="btn-secondary">重新开始</a>
+        <button type="button" class="btn-primary" onclick="window.print()">🖨️ 打印报告</button>
+    </div>
+</div>
+{% endblock %}
+
+{% endwith %}

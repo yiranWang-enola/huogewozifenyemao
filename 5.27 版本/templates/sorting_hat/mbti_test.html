@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}MBTI测试 - 霍格沃兹分业帽{% endblock %}
+
+{% block content %}
+{% with current_step='mbti' %}
+<div class="card">
+    <h1>🧠 MBTI 性格测试</h1>
+    <div class="progress-bar">
+        <div class="progress-info">
+            <span>题目进度</span>
+            <span id="progress-text">0 / {{ total }}</span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+    </div>
+</div>
+
+<form method="post" action="{% url 'mbti_test' %}" id="test-form">
+    {% csrf_token %}
+    
+    <div class="questions-container">
+        {% for question in questions %}
+        <div class="question-card" id="q{{ question.id }}">
+            <div class="question-header">
+                <span class="question-num">第 {{ question.id }} 题</span>
+                <span class="question-dim">{{ question.dimension }}</span>
+            </div>
+            <div class="question-text">{{ question.text }}</div>
+            <div class="options">
+                <label class="option-label">
+                    <input type="radio" name="q{{ question.id }}" value="A" onchange="updateProgress()">
+                    <span class="option-text">A. {{ question.option_a }}</span>
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q{{ question.id }}" value="B" onchange="updateProgress()">
+                    <span class="option-text">B. {{ question.option_b }}</span>
+                </label>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="submit-section">
+        <a href="{% url 'home' %}" class="btn-secondary">← 返回首页</a>
+        <button type="submit" class="btn-primary" id="submit-btn">
+            提交测试 → 进入霍兰德测试
+        </button>
+    </div>
+</form>
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const totalQuestions = {{ total }};
+    let answered = 0;
+    
+    function updateProgress() {
+        answered = 0;
+        for (let i = 1; i <= totalQuestions; i++) {
+            if (document.querySelector(`input[name="q${i}"]:checked`)) {
+                answered++;
+            }
+        }
+        
+        const percent = (answered / totalQuestions) * 100;
+        document.getElementById('progress-fill').style.width = percent + '%';
+        document.getElementById('progress-text').textContent = `${answered} / ${totalQuestions}`;
+        
+        // 高亮已回答的题目
+        for (let i = 1; i <= totalQuestions; i++) {
+            const card = document.getElementById(`q${i}`);
+            if (document.querySelector(`input[name="q${i}"]:checked`)) {
+                card.classList.add('answered');
+            } else {
+                card.classList.remove('answered');
+            }
+        }
+        
+        // 启用/禁用提交按钮
+        document.getElementById('submit-btn').disabled = answered < totalQuestions;
+    }
+    
+    // 初始化
+    document.getElementById('submit-btn').disabled = true;
+</script>
+{% endblock %}

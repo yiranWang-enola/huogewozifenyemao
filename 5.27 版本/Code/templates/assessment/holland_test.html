@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% with current_step='holland' %}
+
+{% block content %}
+<div class="card">
+    <h1>🎯 霍兰德职业兴趣测试</h1>
+    <p style="color: #94a3b8; margin-bottom: 16px;">请判断以下描述是否符合你的情况</p>
+
+    <div class="progress-bar">
+        <div class="progress-info">
+            <span>答题进度</span>
+            <span id="progress-text">0 / {{ questions|length }}</span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+        </div>
+    </div>
+
+    <form method="post" action="{% url 'holland_test' %}" id="holland-form">
+        {% csrf_token %}
+
+        {% for question in questions %}
+        <div class="question-card" id="question-{{ forloop.counter }}">
+            <div class="question-header">
+                <span class="question-num">第 {{ forloop.counter }} 题</span>
+                <span class="question-dim question-type type-{{ question.type }}">{{ question.type_name }}</span>
+            </div>
+            <div class="question-text">{{ question.text }}</div>
+            <div class="options holland-options">
+                <label class="option-label">
+                    <input type="radio" name="q{{ forloop.counter }}" value="yes" required>
+                    <span class="option-text">是</span>
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="q{{ forloop.counter }}" value="no">
+                    <span class="option-text">否</span>
+                </label>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="submit-section">
+            <a href="{% url 'mbti_test' %}" class="btn-secondary">← 返回MBTI测试</a>
+            <button type="submit" class="btn-primary" id="submit-btn" disabled>提交测试 → 进入个人信息</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateProgress() {
+    var total = {{ questions|length }};
+    var answered = 0;
+    for (var i = 1; i <= total; i++) {
+        var radios = document.querySelectorAll('input[name="q' + i + '"]');
+        var card = document.getElementById('question-' + i);
+        var isChecked = false;
+        radios.forEach(function(r) { if (r.checked) isChecked = true; });
+        if (isChecked) {
+            answered++;
+            card.classList.add('answered');
+        } else {
+            card.classList.remove('answered');
+        }
+    }
+    var pct = Math.round((answered / total) * 100);
+    document.getElementById('progress-text').textContent = answered + ' / ' + total;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('submit-btn').disabled = (answered < total);
+}
+
+document.querySelectorAll('input[type="radio"]').forEach(function(radio) {
+    radio.addEventListener('change', updateProgress);
+});
+</script>
+{% endblock %}
+
+{% endwith %}

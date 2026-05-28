@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}霍格沃兹分业帽{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="sidebar">
+        <div class="hat">🎩</div>
+        <h2>霍格沃兹分业帽</h2>
+        <div class="stepBox">
+            <div class="step {% if current_step == 'home' %}active{% endif %}">
+                <a href="{% url 'home' %}">🏠 首页</a>
+            </div>
+            <div class="step {% if current_step == 'mbti' %}active{% endif %}">
+                <a href="{% url 'mbti_test' %}">① MBTI测试</a>
+            </div>
+            <div class="step {% if current_step == 'holland' %}active{% endif %}">
+                <a href="{% url 'holland_test' %}">② 霍兰德测试</a>
+            </div>
+            <div class="step {% if current_step == 'profile' %}active{% endif %}">
+                <a href="{% url 'profile' %}">③ 画像</a>
+            </div>
+            <div class="step {% if current_step == 'recommend' %}active{% endif %}">
+                <a href="{% url 'recommend' %}">④ 推荐</a>
+            </div>
+            <div class="step {% if current_step == 'game' %}active{% endif %}">
+                <a href="{% url 'game' %}">⑤ 博弈</a>
+            </div>
+            <div class="step {% if current_step == 'report' %}active{% endif %}">
+                <a href="{% url 'report' %}">⑥ 报告</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="{% static 'js/app.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
