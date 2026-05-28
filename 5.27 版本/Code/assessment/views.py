@@ -3,6 +3,12 @@ from django.http import JsonResponse
 from django.contrib import messages
 import json
 import os
+import logging
+import re
+
+# 简单配置日志，输出到控制台
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # ==================== 静态数据（保留原有） ====================
 
@@ -148,7 +154,15 @@ def _load_majors():
     majors_path = os.path.join(data_dir, 'majors.json')
     if os.path.exists(majors_path):
         with open(majors_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            data = json.load(f)
+            # majors.json 可能是列表或字典：如果是列表，按 category 分组成字典，兼容现有代码
+            if isinstance(data, list):
+                grouped = {}
+                for m in data:
+                    cat = m.get('category', '其他')
+                    grouped.setdefault(cat, []).append(m)
+                return grouped
+            return data
     return []
 
 
@@ -408,7 +422,7 @@ def recommend_page(request):
                     'id': all_majors.__len__() + 1,
                     'name': m.get('name', ''),
                     'category': category,
-                    'keywords': m.get('name', '') + ' ' + category,
+                    'keywords': m.get('keywords', []) if isinstance(m.get('keywords', []), list) else [m.get('keywords', '')],
                     'employment_rate': m.get('employment_rate', 0.8),
                     'salary_level': m.get('salary_level', 0.7),
                 })
@@ -417,7 +431,11 @@ def recommend_page(request):
         matcher = SemanticMatcher(all_majors) if all_majors else None
         matched = []
         if matcher and interests:
-            matched = matcher.match_interests_to_majors(interests, top_k=20)
+            matched = matcher.match_interests_to_majors(interests, top_k=50)
+        # 计算对所有专业的 TF-IDF 余弦相似度（使兴趣影响能扩散到相关专业）
+        from sklearn.metrics.pairwise import cosine_similarity as _cos_sim
+        user_vec = matcher.vectorizer.transform([interests or '']) if matcher and interests else None
+        sims_full = _cos_sim(user_vec, matcher.major_vectors)[0] if user_vec is not None else None
 
         # ========= 重点：调用新版权重函数，传入全部新参数 =========
         # 空值兼容：None/空转为0
@@ -436,16 +454,51 @@ def recommend_page(request):
             history_score=safe_num(history_score)
         )
 
-        # 构建评价矩阵
+        # 如果存在 AHP 权重（博弈结果），使用它来微调初始权重，使博弈优化生效
+        ahp_weights = request.session.get('ahp_weights')
+        def _apply_ahp_adjustments(base_weights, ahp):
+            """将 AHP 霍兰德维度权重作为乘子作用到 TOPSIS 初始权重，然后归一化。
+            ahp: {'R':0.15,'I':0.2,...}（和为1）
+            处理：对每个影响的 TOPSIS 权重乘以 (1 + scale * ahp_val)
+            """
+            if not ahp:
+                return base_weights
+            scale = 2.0  # 放大系数（已由 0.8 增强至 2.0）以增强 AHP 对 TOPSIS 权重的影响
+            w = base_weights.copy()
+            for letter, val in ahp.items():
+                try:
+                    ahp_val = float(val)
+                except Exception:
+                    ahp_val = 0.0
+                multiplier = 1.0 + scale * ahp_val
+                if letter == 'I':
+                    w['personality_fit'] *= multiplier
+                    w['interest_match'] *= multiplier
+                elif letter == 'E':
+                    w['salary_level'] *= multiplier
+                    w['employment_rate'] *= multiplier
+                elif letter == 'R':
+                    w['gaokao_fit'] *= multiplier
+                elif letter == 'A':
+                    w['interest_match'] *= multiplier
+                elif letter == 'S':
+                    w['personality_fit'] *= multiplier
+                elif letter == 'C':
+                    w['gaokao_fit'] *= multiplier
+
+            # 归一化
+            total = sum(w.values()) or 1
+            for k in w:
+                w[k] = round(w[k] / total, 4)
+            return w
+
+        # 构建评价矩阵：使用 TF-IDF 全量相似度作为 sim
         criteria_matrix = []
-        for major in all_majors:
+        for i, major in enumerate(all_majors):
             personality_score = 0.7
-            interest_score = 0.5
-            if matched:
-                for m in matched:
-                    if m.get('name') == major['name']:
-                        interest_score = m.get('score', 0.5)
-                        break
+            sim = float(sims_full[i]) if sims_full is not None else 0.0
+            # interest_score 映射（采用较宽基底，使更多专业受益）
+            interest_score = 0.4 + 0.6 * sim
             gaokao_fit = 0.6
             criteria_matrix.append([
                 personality_score,
@@ -455,11 +508,124 @@ def recommend_page(request):
                 major.get('salary_level', 0.7),
             ])
 
+        # 如果有 AHP 结果，调整初始权重（乘子方式）
+        initial_weights = _apply_ahp_adjustments(initial_weights, ahp_weights)
+
+        # 构建 numpy 矩阵并做列级归一化（支持 rank-normalize 与 min-max）
+        import numpy as _np
+        criteria_matrix = _np.array(criteria_matrix, dtype=float)
+        if criteria_matrix.size == 0:
+            criteria_matrix = _np.zeros((len(all_majors), 5))
+
+        # 归一化策略开关：默认启用 rank-normalize（按列排名再映射到 [0,1]）
+        use_rank_normalize = request.session.get('use_rank_normalize', True)
+        if use_rank_normalize:
+            # rank-normalize: 更稳健地抑制极端值对 TOPSIS 的主导性
+            N, M = criteria_matrix.shape
+            rank_matrix = _np.zeros_like(criteria_matrix, dtype=float)
+            for col in range(M):
+                col_vals = criteria_matrix[:, col]
+                # 以降序排序（值越大排名越靠前）
+                sorted_idx = _np.argsort(-col_vals)
+                ranks = _np.empty(N, dtype=float)
+                rank = 1
+                i = 0
+                # 手工计算平均排名以处理并列
+                while i < N:
+                    j = i + 1
+                    while j < N and col_vals[sorted_idx[j]] == col_vals[sorted_idx[i]]:
+                        j += 1
+                    avg_rank = rank + (j - i - 1) / 2.0
+                    ranks[sorted_idx[i:j]] = avg_rank
+                    rank += (j - i)
+                    i = j
+                # 映射到 [0,1]
+                if N > 1:
+                    # 映射为 [0,1]，并保证值越大映射越接近1（rank 1 -> 1）
+                    rank_matrix[:, col] = (N - ranks) / (N - 1)
+                else:
+                    rank_matrix[:, col] = 0.0
+            norm_matrix = rank_matrix
+        else:
+            # min-max per column（原逻辑）
+            mins = _np.min(criteria_matrix, axis=0)
+            maxs = _np.max(criteria_matrix, axis=0)
+            ranges = maxs - mins
+            ranges[ranges == 0] = 1.0
+            norm_matrix = (criteria_matrix - mins) / ranges
+
+        # debug 打印归一化片段
+        try:
+            print("DEBUG: normalized criteria_matrix sample ->", norm_matrix[:5].tolist())
+        except Exception:
+            pass
+
         topsis = TOPSIS(weights=initial_weights)
-        ranked = topsis.rank_majors(all_majors, criteria_matrix)
+        # 立即打印权重和部分评价矩阵，确保TOPSIS获得正确输入
+        try:
+            print("DEBUG: initial_weights ->", initial_weights)
+            print("DEBUG: matched sample ->", matched[:5])
+            print("DEBUG: criteria_matrix sample ->", criteria_matrix[:5])
+        except Exception:
+            pass
+        ranked = topsis.rank_majors(all_majors, norm_matrix)
 
         recommendations = ranked[:10]
+        # 计算并附加 TOPSIS 中间量（距离与相对接近度），便于调试为何得分差距很大
+        try:
+            # 使用 TOPSIS 内部归一化以保持一致性
+            normalized_for_topsis = topsis._normalize_matrix(norm_matrix)
+            weight_list = list(initial_weights.values())
+            weighted_matrix = normalized_for_topsis * _np.array(weight_list)
+            ideal_best = _np.max(weighted_matrix, axis=0)
+            ideal_worst = _np.min(weighted_matrix, axis=0)
+            d_pos = _np.array([_np.linalg.norm(weighted_matrix[i] - ideal_best) for i in range(weighted_matrix.shape[0])])
+            d_neg = _np.array([_np.linalg.norm(weighted_matrix[i] - ideal_worst) for i in range(weighted_matrix.shape[0])])
+            closeness = d_neg / (d_pos + d_neg + 1e-10)
+            # 将这些值加入到 recommendations（匹配索引来自 ranked 的原索引）
+            # ranked 列表中顺序为降序排序，ranked[i] 对应索引 ranked_indices[i]
+            for r in recommendations:
+                # 查找原始所在行（通过匹配 name）
+                try:
+                    idx = next(i for i, m in enumerate(all_majors) if m.get('name') == r.get('name'))
+                except StopIteration:
+                    idx = None
+                if idx is not None:
+                    r['d_pos'] = float(d_pos[idx])
+                    r['d_neg'] = float(d_neg[idx])
+                    r['closeness'] = float(closeness[idx])
+        except Exception:
+            pass
+        # 将 topsis_score 转为百分制 score 字段用于页面展示
+        for r in recommendations:
+            try:
+                r_score = float(r.get('topsis_score', 0.0))
+            except Exception:
+                r_score = 0.0
+            r['score'] = round(r_score * 100, 2)
         weights = initial_weights
+
+        # 日志：打印前十个推荐及权重信息，便于调试
+        try:
+            logger.info(f"TOPSIS initial weights: {initial_weights}")
+            logger.info(f"Matched majors count: {len(matched) if matched else 0}")
+            logger.info("Top 10 recommendations: %s", [r.get('name') for r in recommendations[:10]])
+            # 兼容显示：也打印到 stdout，确保在 runserver 输出中可见
+            print("TOPSIS initial weights:", initial_weights)
+            print("Matched majors count:", len(matched) if matched else 0)
+            print("Top 10 recommendations:", [r.get('name') for r in recommendations[:10]])
+            # 打印每个推荐的中间量
+            try:
+                for r in recommendations:
+                    print("REC:", r.get('name'),
+                          "score:", round(r.get('topsis_score', 0), 4),
+                          "d_pos:", round(r.get('d_pos', 0), 6),
+                          "d_neg:", round(r.get('d_neg', 0), 6),
+                          "closeness:", round(r.get('closeness', 0), 6))
+            except Exception:
+                pass
+        except Exception:
+            pass
 
         # 保存到数据库
         try:
@@ -467,7 +633,16 @@ def recommend_page(request):
             sid = _get_session_id(request)
             assessment = db_utils.get_assessment(sid)
             if assessment:
-                rec_list = [{'name': r.get('name', ''), 'score': round(r.get('topsis_score', 0), 4), 'rank': i+1} for i, r in enumerate(recommendations)]
+                rec_list = []
+                for i, r in enumerate(recommendations):
+                    rec_list.append({
+                        'name': r.get('name', ''),
+                        'score': round(r.get('topsis_score', 0), 4),
+                        'rank': i+1,
+                        'd_pos': r.get('d_pos'),
+                        'd_neg': r.get('d_neg'),
+                        'closeness': r.get('closeness')
+                    })
                 db_utils.save_recommendation(sid, assessment.id, rec_list, weights, version=0)
         except Exception:
             pass
@@ -479,6 +654,17 @@ def recommend_page(request):
 
     request.session['recommendations'] = recommendations
     request.session['current_weights'] = weights
+
+    # 将权重转换为百分比传给模板（避免模板把0.25当作0.25%显示）
+    percent_weights = {}
+    if weights:
+        for k, v in weights.items():
+            try:
+                percent_weights[k] = round(float(v) * 100, 2)
+            except Exception:
+                percent_weights[k] = 0.0
+    else:
+        percent_weights = weights
 
     mbti_profile = MBTI_PROFILES.get(mbti, {})
     holland_top3 = request.session.get('holland_top3', [])
@@ -496,7 +682,7 @@ def recommend_page(request):
         'holland': holland,
         'holland_top3': holland_top3,
         'recommendations': recommendations,
-        'weights': weights,
+        'weights': percent_weights,
         'zxf_advices': zxf_advices[:3],
         'gaokao_score': gaokao_score,
     })
