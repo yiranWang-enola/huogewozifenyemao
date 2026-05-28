@@ -27,6 +27,11 @@ class TOPSIS:
         if len(majors) == 0:
             return []
 
+        # 接受 list 或 numpy 数组，确保为 numpy ndarray
+        criteria_matrix = np.array(criteria_matrix, dtype=float)
+        if criteria_matrix.ndim == 1:
+            # 单行情况，转换为二维
+            criteria_matrix = criteria_matrix.reshape(1, -1)
         M, N = criteria_matrix.shape
 
         # 1. 标准化矩阵
@@ -83,6 +88,11 @@ class TOPSIS:
 def get_initial_weights(holland_code, mbti, gaokao_score, province,
                         selected_subjects, chinese_score, math_score,
                         physics_score, history_score):
+        # 修复：将列表转为字符串
+    if isinstance(holland_code, list):
+        holland_code = ''.join(holland_code)
+    if isinstance(mbti, list):
+        mbti = ''.join(mbti)
     """
     根据用户特征动态调整初始权重
     新增：选科组合、语文/数学/物理/历史 单科分数 影响权重
