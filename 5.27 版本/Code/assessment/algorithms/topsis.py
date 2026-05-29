@@ -122,22 +122,61 @@ def get_initial_weights(holland_code, mbti, gaokao_score, province,
         weights['gaokao_fit'] = 0.15
         weights['interest_match'] = 0.20
 
-    # ========== 2. 高考总分 原有逻辑 ==========
-    # 低分考生更关注分数适配度
-    if gaokao_score and gaokao_score < 350:
-        weights['gaokao_fit'] = 0.35
-        weights['personality_fit'] = 0.20
-        weights['interest_match'] = 0.20
-        weights['employment_rate'] = 0.125
-        weights['salary_level'] = 0.125
+    # ========== 2. 高考总分 修正逻辑（结合省份竞争烈度梯队） ==========
+    # 防御负数
+    if gaokao_score and gaokao_score < 0:
+        gaokao_score = 0
 
-    # 高分考生更关注兴趣和性格
-    elif gaokao_score and gaokao_score > 600:
-        weights['personality_fit'] = 0.30
-        weights['interest_match'] = 0.30
-        weights['gaokao_fit'] = 0.15
-        weights['employment_rate'] = 0.125
-        weights['salary_level'] = 0.125
+    # 定义省份竞争梯队（根据历年高考人数、录取率综合评估）
+    # 极高竞争省份：考生极多或名额极少，分数是绝对硬门槛
+    extreme_pressure = ['河南', '山东', '广东', '河北']
+    # 高竞争省份：竞争也很激烈，但略低于极高梯队
+    high_pressure = ['四川', '安徽', '湖南', '广西', '江西', '湖北']
+
+    if gaokao_score:
+        # 1. 极高竞争省份：大幅强化高考适配权重
+        if province in extreme_pressure:
+            weights['gaokao_fit'] = 0.35
+            weights['personality_fit'] = 0.20
+            weights['interest_match'] = 0.20
+            weights['employment_rate'] = 0.125
+            weights['salary_level'] = 0.125
+            
+        # 2. 高竞争省份：适度强化高考适配权重（比极高竞争略低）
+        elif province in high_pressure:
+            weights['gaokao_fit'] = 0.30
+            weights['personality_fit'] = 0.22
+            weights['interest_match'] = 0.23
+            weights['employment_rate'] = 0.125
+            weights['salary_level'] = 0.125
+            
+        # 3. 普通省份：根据总分区间平衡权重
+        else:
+            # 总分 ≤ 750 的地区：分数区分度高，适度强化高考适配权重
+            if gaokao_score <= 750:
+                weights['gaokao_fit'] = 0.25
+                weights['personality_fit'] = 0.25
+                weights['interest_match'] = 0.25
+                weights['employment_rate'] = 0.125
+                weights['salary_level'] = 0.125
+                
+            # 总分 > 750 的地区：分数区分度相对低，弱化高考适配，强化性格/兴趣
+            else:
+                weights['personality_fit'] = 0.30
+                weights['interest_match'] = 0.30
+                weights['gaokao_fit'] = 0.15
+                weights['employment_rate'] = 0.125
+                weights['salary_level'] = 0.125
+
+        # 低分考生兜底：无论哪个省份，只要分数极低，都要转向兴趣导向，避开不切实际的热门
+        if gaokao_score < 350:
+            weights['personality_fit'] = 0.35
+            weights['interest_match'] = 0.30
+            weights['gaokao_fit'] = 0.10
+            weights['employment_rate'] = 0.125
+            weights['salary_level'] = 0.125
+
+
 
     # ========== 3. 新增：选科组合 区分逻辑 ==========
     physics_group = ["物化生", "物化政", "物化地"]
@@ -160,20 +199,26 @@ def get_initial_weights(holland_code, mbti, gaokao_score, province,
     if math_score:
         total_single += math_score
 
-    # 单科整体偏低，进一步提高分数适配权重
+    # 单科整体偏低，选择面窄，降低分数要求，转向兴趣导向
     if total_single > 0 and total_single < 180:
-        weights['gaokao_fit'] += 0.07
-    # 单科整体优秀，偏向兴趣/性格
+        weights['personality_fit'] += 0.07
+        weights['interest_match'] += 0.07
+        weights['gaokao_fit'] -= 0.10
+    # 单科整体优秀，高分优势明显，强化分数适配（不浪费高分）
     elif total_single > 0 and total_single > 240:
-        weights['personality_fit'] += 0.06
-        weights['interest_match'] += 0.04
+        weights['gaokao_fit'] += 0.10
+        weights['personality_fit'] -= 0.05
+        weights['interest_match'] -= 0.05
 
-    # 物理单科低分：降低理工科专业倾向（分数权重拉高）
+    # 物理单科低分：降低理工科倾向，转向兴趣
     if physics_score and physics_score < 60:
-        weights['gaokao_fit'] += 0.06
-    # 历史单科低分：降低文史类专业倾向
+        weights['interest_match'] += 0.06
+        weights['gaokao_fit'] -= 0.04
+    # 历史单科低分：降低文史倾向，转向兴趣
     if history_score and history_score < 60:
-        weights['gaokao_fit'] += 0.06
+        weights['interest_match'] += 0.06
+        weights['gaokao_fit'] -= 0.04
+
 
     # ========== 权重归一化：保证总和始终为1 ==========
     total_w = sum(weights.values())

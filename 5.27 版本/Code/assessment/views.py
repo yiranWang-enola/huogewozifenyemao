@@ -295,10 +295,26 @@ def profile_page(request):
                 request.session['mbti_name'] = matched_profile.get('name', '')
                 request.session['mbti_desc'] = matched_profile.get('desc', '')
                 request.session['mbti_as'] = matched_profile.get('as', '')
+                
+                # 新增：同步更新数据库中的 MBTI 类型
+                try:
+                    from . import db_utils
+                    sid = _get_session_id(request)
+                    db_utils.save_assessment(
+                        sid, 
+                        holland_code=request.session.get('holland', ''),
+                        holland_scores=request.session.get('holland_scores', {}),
+                        mbti_type=input_mbti_code
+                    )
+                except Exception as e:
+                    print("手动修改MBTI保存数据库出错：", e)
+
+                
                 messages.success(request, f'MBTI 已更新为：{input_mbti_code} - {matched_profile["name"]}')
             else:
                 messages.error(request, f'无效的MBTI类型：{input_mbti_code}，请输入有效的4字母组合（如 INTJ, ENFP）')
             return redirect('profile')
+
         
         # ========= 新增：处理 霍兰德职业测试 手动修改 =====
   
@@ -308,10 +324,26 @@ def profile_page(request):
                 request.session['holland'] = input_holland_code
                 auto_top3 = build_holland_top3_from_code(input_holland_code)
                 request.session['holland_top3'] = auto_top3
+                
+                # 新增：同步更新数据库中的 霍兰德 代码和得分
+                try:
+                    from . import db_utils
+                    sid = _get_session_id(request)
+                    db_utils.save_assessment(
+                        sid, 
+                        holland_code=input_holland_code, 
+                        holland_scores=request.session.get('holland_scores', {}),
+                        mbti_type=request.session.get('mbti', '')
+                    )
+                except Exception as e:
+                    print("手动修改霍兰德保存数据库出错：", e)
+
+                
                 messages.success(request, f'霍兰德已更新为：{input_holland_code}')
             else:
                 messages.error(request, f'无效的霍兰德代码：{input_holland_code}，请输入3个字母（如 SEC, RIA）')
             return redirect('profile')
+
     
         
         
@@ -331,8 +363,12 @@ def profile_page(request):
             val = val.strip()
             return int(val) if val else None
 
+        # 新增：获取分数并限制在合理范围
+        raw_gaokao_score = to_int(gaokao_score)
+        valid_gaokao_score = max(0, min(750, raw_gaokao_score)) if raw_gaokao_score is not None else None
+
         update_data = {
-            "gaokao_score": to_int(gaokao_score),
+            "gaokao_score": valid_gaokao_score,  # 使用校验后的分数
             "province": province,
             "selected_subjects": selected_subjects,
             "interests": interests,
@@ -341,6 +377,7 @@ def profile_page(request):
             "physics_score": to_int(physics_score),
             "history_score": to_int(history_score)
         }
+
 
         # 存入 Session 用于页面回显
         for k, v in update_data.items():
@@ -492,14 +529,70 @@ def recommend_page(request):
                 w[k] = round(w[k] / total, 4)
             return w
 
-        # 构建评价矩阵：使用 TF-IDF 全量相似度作为 sim
+        # 构建评价矩阵：动态计算 personality_fit 和 gaokao_fit，打破同质化
         criteria_matrix = []
+        mbti_profile = MBTI_PROFILES.get(mbti, {})
+        mbti_majors = mbti_profile.get('majors', [])
+        
         for i, major in enumerate(all_majors):
-            personality_score = 0.7
+            # 1. personality_fit: 如果专业在 MBTI 推荐列表中得高分，否则给基础分
+            personality_score = 0.9 if major.get('name', '') in mbti_majors else 0.5
+            
+            # 2. interest_match: 保持原有逻辑
             sim = float(sims_full[i]) if sims_full is not None else 0.0
-            # interest_score 映射（采用较宽基底，使更多专业受益）
             interest_score = 0.4 + 0.6 * sim
-            gaokao_fit = 0.6
+            
+            # 3. gaokao_fit: 结合总分和全科目计算专业硬适配度
+            category = major.get('category', '')
+            
+            # 基础分：根据专业大类赋予不同基准
+            if '计算机' in category or '电子信息' in category:
+                base_gaokao = 0.85
+            elif '医学' in category or '金融' in category or '法学' in category:
+                base_gaokao = 0.75
+            else:
+                base_gaokao = 0.60
+                
+            # ====== 综合单科门槛扣分机制 ======
+            # 1. 数学：理工科、金融的核心门槛
+            if math_score is not None and math_score < 90:
+                if '计算机' in category or '电子信息' in category or '自动化' in category or '金融' in category:
+                    base_gaokao -= 0.20
+            # 2. 物理：硬核工科、机械、土木的命门
+            if physics_score is not None and physics_score < 60:
+                if '计算机' in category or '电子信息' in category or '自动化' in category or '机械' in category or '土木' in category:
+                    base_gaokao -= 0.20
+            # 3. 语文：文学、法学、教育、管理的基础
+            if chinese_score is not None and chinese_score < 90:
+                if '文学' in category or '法学' in category or '教育' in category or '管理' in category:
+                    base_gaokao -= 0.20
+            # 4. 历史：文史法政的硬门槛
+            if history_score is not None and history_score < 60:
+                if '法学' in category or '文学' in category or '教育' in category:
+                    base_gaokao -= 0.20
+                    
+            # ====== 综合单科高分加分机制 ======
+            # 1. 数学高分：强化理工、金融
+            if math_score is not None and math_score >= 130:
+                if '计算机' in category or '电子信息' in category or '金融' in category:
+                    base_gaokao += 0.20
+            # 2. 物理高分：强化硬核工科
+            if physics_score is not None and physics_score >= 85:
+                if '计算机' in category or '电子信息' in category or '机械' in category or '土木' in category:
+                    base_gaokao += 0.20
+            # 3. 语文高分：强化文史法教
+            if chinese_score is not None and chinese_score >= 120:
+                if '文学' in category or '法学' in category or '教育' in category or '管理' in category:
+                    base_gaokao += 0.20
+            # 4. 历史高分：强化人文社科
+            if history_score is not None and history_score >= 85:
+                if '法学' in category or '文学' in category or '教育' in category:
+                    base_gaokao += 0.20
+                    
+            # 限制 gaokao_fit 在 0.1 ~ 1.0 之间，防止越界
+            gaokao_fit = max(0.1, min(1.0, base_gaokao))
+
+                
             criteria_matrix.append([
                 personality_score,
                 interest_score,
@@ -507,6 +600,7 @@ def recommend_page(request):
                 major.get('employment_rate', 0.8),
                 major.get('salary_level', 0.7),
             ])
+
 
         # 如果有 AHP 结果，调整初始权重（乘子方式）
         initial_weights = _apply_ahp_adjustments(initial_weights, ahp_weights)
@@ -689,124 +783,122 @@ def recommend_page(request):
 
 
 
+def _save_game_result(sid, engine):
+    """保存AHP博弈结果到数据库"""
+    try:
+        from . import db_utils
+        rec = db_utils.get_latest_recommendation(sid)
+        if rec:
+            weights = engine.calculate_weights()
+            db_utils.save_dialogue(
+                rec.id, 
+                f"AHP博弈完成，回答了{len(engine.answers)}道题", 
+                'ahp_complete', 
+                {},
+                weights,
+                engine.answers,
+                f"AHP权重计算完成：{weights}"
+            )
+    except Exception as e:
+        print(f"保存对话失败: {e}")
+def api_submit_answer(request):
+    """API: 提交博弈答案"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request'})
+        
+    import json
+    from .algorithms.game_engine import GameEngine
+    
+    sid = _get_session_id(request)
+    game_state = request.session.get('game_engine_state', {})
+    
+    engine = GameEngine(sid)
+    engine.current_index = game_state.get('current_index', 0)
+    engine.answers = game_state.get('answers', [])
+    
+    data = json.loads(request.body)
+    if engine.submit_answer(data.get('question_id'), data.get('answer')):
+        game_state['current_index'] = engine.current_index
+        game_state['answers'] = engine.answers
+        request.session['game_engine_state'] = game_state
+        
+        next_q = engine.get_next_question()
+        if next_q:
+            return JsonResponse({'success': True, 'completed': False, 'next_question': next_q})
+        else:
+            weights = engine.calculate_weights()
+            game_state['completed'] = True
+            game_state['weights'] = weights
+            request.session['game_engine_state'] = game_state
+            request.session['ahp_weights'] = weights
+            
+            _save_game_result(sid, engine)
+            
+            return JsonResponse({'success': True, 'completed': True, 'weights': weights})
+            
+    return JsonResponse({'success': False, 'error': '提交答案失败'})
+
+
+def api_get_question(request):
+    """API: 获取当前博弈问题"""
+    from .algorithms.game_engine import GameEngine, GAME_QUESTIONS
+    
+    sid = _get_session_id(request)
+    game_state = request.session.get('game_engine_state', {})
+    
+    engine = GameEngine(sid)
+    engine.current_index = game_state.get('current_index', 0)
+    engine.answers = game_state.get('answers', [])
+    
+    current_q = engine.get_next_question()
+    if current_q:
+        return JsonResponse({
+            'success': True,
+            'question': current_q,
+            'progress': f"{engine.current_index + 1}/{len(GAME_QUESTIONS)}"
+        })
+    else:
+        return JsonResponse({
+            'success': True,
+            'completed': True,
+            'weights': engine.calculate_weights() if engine.answers else {}
+        })
 def game_page(request):
-    """博弈优化页面 - 使用AHP博弈引擎，显示7道成对比较问题"""
+    """博弈优化页面"""
     from .algorithms.game_engine import GameEngine, GAME_QUESTIONS
     
     sid = _get_session_id(request)
     
-    # 从session获取或创建游戏引擎状态
+    # 处理表单提交（查看报告）
+    if request.method == 'POST' and 'next' in request.POST:
+        if 'game_engine_state' in request.session:
+            del request.session['game_engine_state']
+        return redirect('report')
+    
+    # 初始化或获取状态
     if 'game_engine_state' not in request.session:
-        request.session['game_engine_state'] = {
-            'current_index': 0,
-            'answers': [],
-            'completed': False
-        }
+        request.session['game_engine_state'] = {'current_index': 0, 'answers': [], 'completed': False}
     
     game_state = request.session['game_engine_state']
     engine = GameEngine(sid)
     engine.current_index = game_state['current_index']
     engine.answers = game_state['answers']
     
-    if request.method == 'POST':
-        # 处理AJAX提交答案
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            import json
-            data = json.loads(request.body)
-            action = data.get('action')
-            
-            if action == 'submit_answer':
-                question_id = data.get('question_id')
-                answer = data.get('answer')  # 'a' 或 'b'
-                
-                if engine.submit_answer(question_id, answer):
-                    game_state['current_index'] = engine.current_index
-                    game_state['answers'] = engine.answers
-                    request.session['game_engine_state'] = game_state
-                    
-                    # 获取下一题
-                    next_q = engine.get_next_question()
-                    if next_q:
-                        return JsonResponse({
-                            'success': True,
-                            'completed': False,
-                            'next_question': next_q
-                        })
-                    else:
-                        # 所有问题回答完毕，计算权重
-                        weights = engine.calculate_weights()
-                        game_state['completed'] = True
-                        game_state['weights'] = weights
-                        request.session['game_engine_state'] = game_state
-                        request.session['ahp_weights'] = weights
-                        
-                        # 保存到数据库
-                        try:
-                            from . import db_utils
-                            rec = db_utils.get_latest_recommendation(sid)
-                            if rec:
-                                db_utils.save_dialogue(
-                                    rec.id, 
-                                    f"AHP博弈完成，回答了{len(engine.answers)}道题", 
-                                    'ahp_complete', 
-                                    {},
-                                    weights,
-                                    engine.answers,
-                                    f"AHP权重计算完成：{weights}"
-                                )
-                        except Exception as e:
-                            print(f"保存对话失败: {e}")
-                        
-                        return JsonResponse({
-                            'success': True,
-                            'completed': True,
-                            'weights': weights
-                        })
-                else:
-                    return JsonResponse({'success': False, 'error': '提交答案失败'})
-            
-            elif action == 'get_question':
-                current_q = engine.get_next_question()
-                if current_q:
-                    return JsonResponse({
-                        'success': True,
-                        'question': current_q,
-                        'progress': f"{engine.current_index + 1}/{len(GAME_QUESTIONS)}"
-                    })
-                else:
-                    return JsonResponse({
-                        'success': True,
-                        'completed': True,
-                        'weights': engine.calculate_weights() if engine.answers else {}
-                    })
-        
-        # 处理表单提交（查看报告）
-        if 'next' in request.POST:
-            # 清理游戏状态
-            if 'game_engine_state' in request.session:
-                del request.session['game_engine_state']
-            return redirect('report')
-    
-    # GET请求：获取当前问题
+    # 准备渲染数据
     current_question = engine.get_next_question()
     progress = f"{engine.current_index + 1}/{len(GAME_QUESTIONS)}" if current_question else f"{len(GAME_QUESTIONS)}/{len(GAME_QUESTIONS)}"
-    completed = game_state.get('completed', False)
-    final_weights = game_state.get('weights', {}) if completed else {}
-    
-    mbti = request.session.get('mbti', '')
-    holland = request.session.get('holland', '')
-    recommendations = request.session.get('recommendations', [])
     
     return render(request, 'assessment/game.html', {
-        'mbti': mbti, 
-        'holland': holland,
-        'recommendations': recommendations,
+        'mbti': request.session.get('mbti', ''), 
+        'holland': request.session.get('holland', ''),
+        'recommendations': request.session.get('recommendations', []),
         'current_question': current_question,
         'progress': progress,
-        'completed': completed,
-        'final_weights': final_weights,
+        'completed': game_state.get('completed', False),
+        'final_weights': game_state.get('weights', {}) if game_state.get('completed') else {},
         'total_questions': len(GAME_QUESTIONS),
     })
+
 
 
 def report_page(request):
