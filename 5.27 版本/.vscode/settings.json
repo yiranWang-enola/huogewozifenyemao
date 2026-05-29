@@ -1,0 +1,17 @@
+{
+    // 1. 指定 Python 格式化工具为 autopep8
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.autopep8",
+        // 2. 开启保存时自动格式化
+        "editor.formatOnSave": true
+    },
+    // 3. 为 autopep8 传入自定义参数 (可选)
+    "autopep8.args": [
+        "--max-line-length", "119",     // 将最大行长度调整为119，以更好地适配Django
+        "--aggressive", "--aggressive"  // 使用更激进的修正级别 (可选，慎用)
+    ],
+    // 4. 如果你使用 pylint 作为linter，建议为Django项目进行额外配置以避免误报
+    "python.linting.pylintArgs": [
+        "--load-plugins", "pylint_django"
+    ]
+}
