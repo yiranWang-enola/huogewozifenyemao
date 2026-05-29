@@ -1,6 +1,10 @@
-from django.db import models
-import json
+"""Django models for the assessment app."""
+
 import uuid
+
+from django.db import models
+
+# pylint: disable=no-member
 
 
 class UserProfile(models.Model):

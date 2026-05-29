@@ -1,3 +1,4 @@
+# pylint: disable=no-member
 from .models import UserProfile, AssessmentResult, RecommendationResult, DialogueLog
 
 # ========== 用户相关 ==========
