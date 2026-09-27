@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-labelledby="title description">
+  <title id="title">Harry Potter</title>
+  <desc id="description">Harry Potter in golden serif lettering on a midnight blue background.</desc>
+  <defs>
+    <radialGradient id="background">
+      <stop offset="0" stop-color="#203557"/>
+      <stop offset="1" stop-color="#080f20"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff1b8"/>
+      <stop offset="0.5" stop-color="#e5ba5b"/>
+      <stop offset="1" stop-color="#a87529"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="600" rx="24" fill="url(#background)"/>
+  <rect x="28" y="28" width="1144" height="544" rx="12" fill="none" stroke="#d8b568" stroke-opacity="0.45"/>
+  <g fill="#f5dda0">
+    <circle cx="180" cy="165" r="2"/>
+    <circle cx="995" cy="180" r="3"/>
+    <circle cx="260" cy="420" r="3"/>
+    <circle cx="940" cy="430" r="2"/>
+  </g>
+  <path d="M615 90 L580 146 H605 L585 195 L640 128 H613 L635 90 Z" fill="url(#gold)"/>
+  <text x="600" y="330" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="112" font-weight="bold" letter-spacing="3" fill="url(#gold)">Harry Potter</text>
+  <path d="M360 385 H840" stroke="#d8b568" stroke-width="2" stroke-opacity="0.6"/>
+</svg>
