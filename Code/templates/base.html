@@ -5,12 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}霍格沃兹分业帽{% endblock %}</title>
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=magic-particles-2">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <div class="sidebar">
-        <div class="hat">🎩</div>
+        <div class="hat">
+            <img src="{% static 'images/sorting-hat.svg' %}" alt="古老的魔法分院帽">
+            <div class="hat-particles" aria-hidden="true">
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+            </div>
+        </div>
         <h2>霍格沃兹分业帽</h2>
         <div class="stepBox">
             <div class="step {% if current_step == 'home' %}active{% endif %}">
