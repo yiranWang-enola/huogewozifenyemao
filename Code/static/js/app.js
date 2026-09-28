@@ -13,11 +13,11 @@ document.addEventListener('DOMContentLoaded', function() {
     cards.forEach(card => {
         card.addEventListener('mouseenter', function() {
             this.style.transform = 'translateY(-3px)';
-            this.style.boxShadow = '0 8px 30px rgba(99, 102, 241, 0.2)';
+            this.style.boxShadow = '0 8px 30px rgba(37, 99, 235, 0.14)';
         });
         card.addEventListener('mouseleave', function() {
             this.style.transform = 'translateY(0)';
-            this.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.3)';
+            this.style.boxShadow = '0 4px 20px rgba(30, 100, 160, 0.08)';
         });
     });
 });

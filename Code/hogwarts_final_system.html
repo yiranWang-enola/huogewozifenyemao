@@ -3,17 +3,20 @@
 <title>霍格沃兹分业帽·最终模拟系统</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 <style>
-body{margin:0;font-family:Arial;background:#0e1629;color:#fff}
-.sidebar{position:fixed;left:0;top:0;width:220px;height:100%;background:#08111f;padding:20px}
+body{margin:0;font-family:Arial;background:linear-gradient(135deg,#f0f9ff,#e6f4ff);color:#20364d}
+.sidebar{position:fixed;left:0;top:0;width:220px;height:100%;background:#fff;border-right:1px solid #d5e9fa;padding:20px}
 .main{margin-left:240px;padding:20px}
-.card{background:#18233d;padding:18px;border-radius:15px;margin:15px}
+.card{background:#fff;border:1px solid #d5e9fa;box-shadow:0 4px 20px rgba(30,100,160,.08);padding:18px;border-radius:15px;margin:15px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .hat{font-size:90px;animation:f 2s infinite;text-align:center}
 @keyframes f{50%{transform:translateY(-10px)}}
 button{background:#2563eb;color:white;border:0;padding:10px 16px;border-radius:8px}
-.chat{height:220px;overflow:auto;background:#111827;padding:10px;border-radius:10px}
-input,select{padding:8px;margin:5px;width:80%}
-</style></head><body>
+.chat{height:220px;overflow:auto;background:#edf7ff;padding:10px;border-radius:10px}
+input,select{padding:8px;margin:5px;width:80%;background:#fff;color:#20364d;border:1px solid #b9d9f5;border-radius:8px}
+h2,h3{color:#1d4ed8}
+button:hover{background:#1d4ed8}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #2563eb;outline-offset:3px}
+</style><link rel="stylesheet" href="static/css/magic-background.css"></head><body>
 <div class="sidebar">
 <div class=hat>🎩</div>
 <h2>霍格沃兹分业帽666666</h2>
@@ -112,7 +115,7 @@ chat.scrollTop=chat.scrollHeight;
 
 function poster(){
 document.getElementById("share").innerHTML=
-"<div style='border:1px solid white;padding:10px;margin-top:10px'>🎩 霍格沃兹工学院<br>推荐：计算机科学与技术<br>匹配度：91%</div>"
+"<div style='border:1px solid #b9d9f5;padding:10px;margin-top:10px'>🎩 霍格沃兹工学院<br>推荐：计算机科学与技术<br>匹配度：91%</div>"
 }
 </script>
 </body></html>
