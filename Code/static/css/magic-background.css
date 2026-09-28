@@ -1,0 +1,23 @@
+/* 明亮的绿色魔法背景：中央浅色，四周渐深。 */
+body {
+    isolation: isolate;
+    background: radial-gradient(ellipse at 50% 45%,
+        #f5fff0 0%, #e5fbd8 25%, #c5efae 50%, #99d87d 75%, #72bd60 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: url('../images/magic-stripes.svg') center / cover no-repeat;
+    opacity: 0.55;
+}
+
+@media print {
+    body { background: #fff; }
+    body::before { display: none; }
+}
